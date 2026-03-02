@@ -45,8 +45,8 @@ Note: the number of examples may vary based on the complexity of the module. Eac
 - `tests/` - Test configurations
   - `common-test.auto.tfvars` - Common test variables, values in this file are automatically loaded by the test framework. Ie. they serve as default values for the tests. Values can be overridden for each test as needed.
   - `unit-tests.tftest.hcl` - Unit tests for module validation
-  - `integration-test-01-basic.tftest.hcl` - Tests for basic example
-  - `integration-test-02-full.tftest.hcl` - Tests for full example
+  - `integration-test-example-01.tftest.hcl` - Tests for basic example
+  - `integration-test-example-02.tftest.hcl` - Tests for full example
 
 ### Configuration
 
@@ -136,8 +136,8 @@ The module should include both unit tests and integration tests:
 2. Integration tests:
    - Should use real resources but can be run in a separate environment
    - Usually, examples are used for integration tests, e.g.:
-     - Basic example tests (`integration-test-01-basic.tftest.hcl`)
-     - Full example tests (`integration-test-02-full.tftest.hcl`)
+     - Basic example tests (`integration-test-example-01.tftest.hcl`)
+     - Full example tests (`integration-test-example-02.tftest.hcl`)
 
 ## Code Linting
 

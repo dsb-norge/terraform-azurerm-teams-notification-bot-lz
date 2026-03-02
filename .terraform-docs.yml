@@ -11,12 +11,13 @@ sections:
   show: []
 
 content: |-
-  <!-- markdownlint-disable MD033 -->
+  <!-- markdownlint-disable-file MD013 -->
+  <!-- markdownlint-disable-file MD033 -->
+  <!-- markdownlint-disable-file MD037 -->
   {{ .Requirements }}
 
   {{ .Resources }}
 
-  <!-- markdownlint-disable MD013 -->
   {{ .Inputs }}
 
   {{ .Outputs }}

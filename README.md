@@ -1,13 +1,144 @@
-# project title
+# terraform-azurerm-teams-notification-bot-lz
 
-TODO: Project description.
+Landing zone module for deploying a Teams Notification Bot on Azure. Provisions all required infrastructure: Function App (Flex Consumption), Bot Service, Storage Account, Log Analytics, Application Insights, VNet integration, and optional monitoring alerts.
+
+## Architecture
+
+This module deploys the following resources into an existing resource group:
+
+| Component | Resource | Purpose |
+|-----------|----------|---------|
+| **Compute** | Function App (Flex Consumption, FC1) | Hosts the bot's .NET 10 isolated worker |
+| **Bot Service** | Azure Bot Service (F0, SingleTenant) | Routes Teams channel traffic to the Function App |
+| **Storage** | Storage Account (LRS, no shared keys) | Queue triggers, table state, deployment packages |
+| **Networking** | VNet + 2 subnets | VNet integration for Function App, private endpoints |
+| **Private Endpoints** | 3 PEs (blob, queue, table) | Private connectivity to storage |
+| **Identity** | User-Assigned Managed Identity | Passwordless access to storage and bot auth |
+| **Monitoring** | Log Analytics + App Insights + Query Pack | Observability with 15 saved diagnostic KQL queries |
+| **Alerts** | Metric alerts + Action Group (optional) | Poison queue, queue backlog, and heartbeat monitoring |
+| **Diagnostics** | Diagnostic settings (4) | Routes Function App and Storage logs to LAW |
+| **CI/CD** | Deploy UAMI + FICs (optional) | GitHub Actions OIDC deployment identity |
+
+## Prerequisites
+
+- An existing Azure resource group
+- Two Entra ID app registrations:
+  - **Bot app** (`bot_app_id`) — for Bot Framework SingleTenant auth
+  - **API app** (`api_app_id`, `api_app_object_id`) — for EasyAuth on the Function App and Action Group AAD auth
 
 ## Usage
 
-Refer to [examples](TODO: Add repo URL (Url is used because this README.md is visible on module start page in terraform registry)) for usage of module.
-
-TODO: uncomment actions workflows
+Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/tree/main/examples) for usage of module.
 
 <!-- BEGIN_TF_DOCS -->
-this content between the `BEGIN_TF_DOCS` and `END_TF_DOCS` comments will be replaced by the auto-generated tf docs created by the [terraform-docs command](#generate-and-inject-terraform-docs-in-readmemd)
+<!-- markdownlint-disable-file MD013 -->
+<!-- markdownlint-disable-file MD033 -->
+<!-- markdownlint-disable-file MD037 -->
+## Requirements
+
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | ~> 1.12 |
+| <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | ~> 2.0 |
+| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 4.20 |
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [azapi_resource.bot](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) | resource |
+| [azapi_update_resource.bot_auth_settings](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/update_resource) | resource |
+| [azurerm_application_insights.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/application_insights) | resource |
+| [azurerm_bot_channel_ms_teams.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/bot_channel_ms_teams) | resource |
+| [azurerm_bot_service_azure_bot.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/bot_service_azure_bot) | resource |
+| [azurerm_federated_identity_credential.deploy_github](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/federated_identity_credential) | resource |
+| [azurerm_log_analytics_query_pack.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack) | resource |
+| [azurerm_log_analytics_query_pack_query.all_http_traffic_10m](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.all_http_traffic_30m](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.all_traces_by_category](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.bot_handler_activity](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.bot_requests_timeline](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.errors_and_warnings](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.function_executions](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.inbound_requests](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.jwt_auth_events](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.msal_token_acquisition](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.msteams_count](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.outbound_http_calls](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.request_e2e_timeline](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_query_pack_query.traffic_by_channel](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_query_pack_query) | resource |
+| [azurerm_log_analytics_workspace.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) | resource |
+| [azurerm_monitor_action_group.bot_alerts](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_action_group) | resource |
+| [azurerm_monitor_diagnostic_setting.function_app](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) | resource |
+| [azurerm_monitor_diagnostic_setting.storage_blob](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) | resource |
+| [azurerm_monitor_diagnostic_setting.storage_queue](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) | resource |
+| [azurerm_monitor_diagnostic_setting.storage_table](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_diagnostic_setting) | resource |
+| [azurerm_monitor_metric_alert.poison_queue](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_metric_alert) | resource |
+| [azurerm_monitor_metric_alert.queue_backlog](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_metric_alert) | resource |
+| [azurerm_monitor_metric_alert.storage_heartbeat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_metric_alert) | resource |
+| [azurerm_private_dns_zone.zones](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_dns_zone) | resource |
+| [azurerm_private_dns_zone_virtual_network_link.links](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_dns_zone_virtual_network_link) | resource |
+| [azurerm_private_endpoint.endpoints](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
+| [azurerm_role_assignment.deploy_uami_reader](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.deploy_uami_website_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.uami_storage_blob_data_owner](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.uami_storage_queue_data_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.uami_storage_table_data_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_service_plan.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/service_plan) | resource |
+| [azurerm_storage_account.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) | resource |
+| [azurerm_storage_account_network_rules.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account_network_rules) | resource |
+| [azurerm_storage_container.deployments](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) | resource |
+| [azurerm_storage_queue.botoperations](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_queue) | resource |
+| [azurerm_storage_queue.botoperations_poison](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_queue) | resource |
+| [azurerm_storage_queue.notifications](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_queue) | resource |
+| [azurerm_storage_queue.notifications_poison](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_queue) | resource |
+| [azurerm_subnet.function_app](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) | resource |
+| [azurerm_subnet.private_endpoints](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) | resource |
+| [azurerm_user_assigned_identity.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) | resource |
+| [azurerm_user_assigned_identity.deploy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) | resource |
+| [azurerm_virtual_network.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network) | resource |
+| [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
+| [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group) | data source |
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_api_app_id"></a> [api\_app\_id](#input\_api\_app\_id) | Client ID of the Entra ID app registration for API authentication (EasyAuth). Must be a valid UUID. | `string` | n/a | yes |
+| <a name="input_api_app_object_id"></a> [api\_app\_object\_id](#input\_api\_app\_object\_id) | Object ID of the Entra ID app registration for API authentication. Used by Azure Monitor action group AAD auth. | `string` | n/a | yes |
+| <a name="input_bot_app_id"></a> [bot\_app\_id](#input\_bot\_app\_id) | Client ID of the Entra ID app registration for Bot Framework auth (SingleTenant). Must be a valid UUID. | `string` | n/a | yes |
+| <a name="input_name"></a> [name](#input\_name) | Base name for all resources. | `string` | n/a | yes |
+| <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Name of the pre-existing resource group to deploy resources into. | `string` | n/a | yes |
+| <a name="input_alert_target_alias"></a> [alert\_target\_alias](#input\_alert\_target\_alias) | Channel alias for alert webhook delivery. Empty string disables alert resources. | `string` | `""` | no |
+| <a name="input_app_namespace"></a> [app\_namespace](#input\_app\_namespace) | Root .NET namespace of the deployed function app. Used in Log Analytics KQL queries to filter by logger category. | `string` | `"TeamsNotificationBot"` | no |
+| <a name="input_deploy_github_actions_from"></a> [deploy\_github\_actions\_from](#input\_deploy\_github\_actions\_from) | Map of GitHub repositories that should get federated identity credentials for CI/CD deployment.<br/>Creates a deploy UAMI with FICs when non-empty. Keys are repository names. The GitHub organization is set via var.github\_org.<br/><br/>Available settings:<br/>  pull\_request\_events: if true, allow access from pull request events.<br/>  environments: list of GitHub environments to allow access from.<br/>  branches: list of branches to allow access from.<br/>  tags: list of tags to allow access from. | <pre>map(object({<br/>    pull_request_events = optional(bool, false)<br/>    environments        = optional(list(string), [])<br/>    branches            = optional(list(string), [])<br/>    tags                = optional(list(string), [])<br/>  }))</pre> | `{}` | no |
+| <a name="input_github_org"></a> [github\_org](#input\_github\_org) | GitHub organization name for OIDC subject claims in deploy UAMI federated identity credentials. | `string` | `""` | no |
+| <a name="input_location"></a> [location](#input\_location) | Azure region for all resources. | `string` | `"norwayeast"` | no |
+| <a name="input_management_ip_rules"></a> [management\_ip\_rules](#input\_management\_ip\_rules) | IP addresses/ranges allowed for management access (terraform apply, deployment, testing). Used by function app and storage network rules. | <pre>list(object({<br/>    name        = string<br/>    description = string<br/>    cidr        = string<br/>  }))</pre> | `[]` | no |
+| <a name="input_subnet_function_app_prefix"></a> [subnet\_function\_app\_prefix](#input\_subnet\_function\_app\_prefix) | Address prefix for the Function App VNet integration subnet. Must be at least /24. | `string` | `"10.0.0.0/24"` | no |
+| <a name="input_subnet_private_endpoints_prefix"></a> [subnet\_private\_endpoints\_prefix](#input\_subnet\_private\_endpoints\_prefix) | Address prefix for the private endpoints subnet. | `string` | `"10.0.1.0/24"` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | Additional tags to apply to all resources. Caller tags take precedence over module defaults on conflict. | `map(string)` | `{}` | no |
+| <a name="input_vnet_address_space"></a> [vnet\_address\_space](#input\_vnet\_address\_space) | Address space for the virtual network. | `list(string)` | <pre>[<br/>  "10.0.0.0/16"<br/>]</pre> | no |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_application_insights_connection_string"></a> [application\_insights\_connection\_string](#output\_application\_insights\_connection\_string) | The connection string of the Application Insights instance. |
+| <a name="output_application_insights_instrumentation_key"></a> [application\_insights\_instrumentation\_key](#output\_application\_insights\_instrumentation\_key) | The instrumentation key of the Application Insights instance. |
+| <a name="output_bot_service_name"></a> [bot\_service\_name](#output\_bot\_service\_name) | The name of the Bot Service. |
+| <a name="output_deploy_uami_client_id"></a> [deploy\_uami\_client\_id](#output\_deploy\_uami\_client\_id) | The client ID of the deploy user-assigned managed identity. Null when deploy\_github\_actions\_from is empty. |
+| <a name="output_function_app_hostname"></a> [function\_app\_hostname](#output\_function\_app\_hostname) | The default hostname of the Function App. |
+| <a name="output_function_app_name"></a> [function\_app\_name](#output\_function\_app\_name) | The name of the Function App. |
+| <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id) | The ID of the Log Analytics workspace. |
+| <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | The name of the resource group (passthrough from input). |
+| <a name="output_storage_account_name"></a> [storage\_account\_name](#output\_storage\_account\_name) | The name of the Storage Account. |
+| <a name="output_uami_client_id"></a> [uami\_client\_id](#output\_uami\_client\_id) | The client ID of the bot's user-assigned managed identity. |
+| <a name="output_uami_principal_id"></a> [uami\_principal\_id](#output\_uami\_principal\_id) | The principal ID of the bot's user-assigned managed identity. |
+
+## Modules
+
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_naming"></a> [naming](#module\_naming) | Azure/naming/azurerm | 0.4.2 |
 <!-- END_TF_DOCS -->
