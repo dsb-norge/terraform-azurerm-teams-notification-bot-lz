@@ -1,0 +1,57 @@
+###############################################################################
+# Terraform
+###############################################################################
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+**/*.tfstate
+**/*.tfstate.*
+
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+**/override.tf
+**/override.tf.json
+**/*_override.tf
+**/*_override.tf.json
+
+# Ignore CLI configuration files
+**/.terraformrc
+**/terraform.rc
+
+# Terraform lock files
+**/.terraform.lock.hcl
+
+
+###############################################################################
+# TFLint
+###############################################################################
+
+# Config files
+**/.tflint.hcl
+
+# Except config files for envs
+!envs/**/.tflint.hcl
+
+# Local tflint directories
+**/.tflint/*
+
+
+###############################################################################
+# Other
+###############################################################################
+
+
+# VScode files
+**/.vscode/*
+
+# Idea and key file
+*.idea/
+*.key
+
+# Crash log files
+crash.log
+
+# MacOS specific files
+**/.DS_Store
