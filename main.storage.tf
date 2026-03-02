@@ -3,9 +3,9 @@
 #
 
 resource "azurerm_storage_account" "bot" {
-  account_replication_type      = "LRS"
-  account_tier                  = "Standard"
-  location                      = var.location
+  account_replication_type = "LRS"
+  account_tier             = "Standard"
+  location                 = var.location
   # Storage accounts require all-lowercase alphanumeric names; the naming module
   # does not strip hyphens from within suffix elements, so we construct manually.
   name                          = "st${replace(var.name, "-", "")}"

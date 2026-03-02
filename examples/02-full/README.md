@@ -21,7 +21,9 @@ terraform apply -var="name=my-bot" -var="bot_app_id=..." -var="api_app_id=..." -
 ```
 
 <!-- BEGIN_TF_DOCS -->
-<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable-file MD013 -->
+<!-- markdownlint-disable-file MD033 -->
+<!-- markdownlint-disable-file MD037 -->
 ## Requirements
 
 No requirements.
@@ -32,7 +34,6 @@ No requirements.
 |------|------|
 | [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
 
-<!-- markdownlint-disable MD013 -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -46,12 +47,12 @@ No requirements.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_application_insights_connection_string"></a> [application\_insights\_connection\_string](#output\_application\_insights\_connection\_string) | n/a |
-| <a name="output_bot_service_name"></a> [bot\_service\_name](#output\_bot\_service\_name) | n/a |
-| <a name="output_deploy_uami_client_id"></a> [deploy\_uami\_client\_id](#output\_deploy\_uami\_client\_id) | n/a |
-| <a name="output_function_app_name"></a> [function\_app\_name](#output\_function\_app\_name) | n/a |
-| <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id) | n/a |
-| <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | n/a |
+| <a name="output_application_insights_connection_string"></a> [application\_insights\_connection\_string](#output\_application\_insights\_connection\_string) | The connection string of the Application Insights instance. |
+| <a name="output_bot_service_name"></a> [bot\_service\_name](#output\_bot\_service\_name) | The name of the Bot Service. |
+| <a name="output_deploy_uami_client_id"></a> [deploy\_uami\_client\_id](#output\_deploy\_uami\_client\_id) | The client ID of the deploy user-assigned managed identity. Null when deploy\_github\_actions\_from is empty. |
+| <a name="output_function_app_name"></a> [function\_app\_name](#output\_function\_app\_name) | The name of the Function App. |
+| <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id) | The ID of the Log Analytics workspace. |
+| <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | The name of the resource group (passthrough from input). |
 
 ## Modules
 

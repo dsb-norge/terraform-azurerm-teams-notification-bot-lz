@@ -57,6 +57,11 @@ variable "alert_target_alias" {
   description = "Channel alias for alert webhook delivery. Empty string disables alert resources."
   type        = string
   default     = ""
+
+  validation {
+    condition     = var.alert_target_alias == "" || can(regex("^[a-zA-Z0-9_-]+$", var.alert_target_alias))
+    error_message = "The 'alert_target_alias' must only contain letters, numbers, hyphens, and underscores (used as a URL path segment)."
+  }
 }
 
 variable "app_namespace" {
@@ -166,6 +171,11 @@ variable "subnet_function_app_prefix" {
   validation {
     condition     = can(cidrhost(var.subnet_function_app_prefix, 0))
     error_message = "The 'subnet_function_app_prefix' must be a valid CIDR block."
+  }
+
+  validation {
+    condition     = can(tonumber(split("/", var.subnet_function_app_prefix)[1])) && tonumber(split("/", var.subnet_function_app_prefix)[1]) <= 24
+    error_message = "The 'subnet_function_app_prefix' must be at least /24 (prefix length <= 24)."
   }
 }
 
