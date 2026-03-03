@@ -34,6 +34,7 @@ resource "azurerm_log_analytics_query_pack_query" "msteams_count" {
   categories     = ["audit"]
   description    = "Count of ABSBotRequests for msteams channel. Should be >0 if Teams is routing to Bot Service."
   resource_types = ["microsoft.botservice/botservices"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "traffic_by_channel" {
@@ -46,6 +47,7 @@ resource "azurerm_log_analytics_query_pack_query" "traffic_by_channel" {
   categories     = ["audit"]
   description    = "Summarize ABSBotRequests by channel. Shows which channels are actively routing traffic to Bot Service."
   resource_types = ["microsoft.botservice/botservices"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "all_http_traffic_10m" {
@@ -60,6 +62,7 @@ resource "azurerm_log_analytics_query_pack_query" "all_http_traffic_10m" {
   categories     = ["applications"]
   description    = "All HTTP requests hitting the function app in the last 10 minutes."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "all_http_traffic_30m" {
@@ -74,6 +77,7 @@ resource "azurerm_log_analytics_query_pack_query" "all_http_traffic_30m" {
   categories     = ["applications"]
   description    = "All HTTP requests hitting the function app over a wider window."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "bot_requests_timeline" {
@@ -88,6 +92,7 @@ resource "azurerm_log_analytics_query_pack_query" "bot_requests_timeline" {
   categories     = ["audit"]
   description    = "All ABSBotRequests over the last 24 hours with channel, result code, and duration."
   resource_types = ["microsoft.botservice/botservices"]
+  tags           = local.common_tags
 }
 
 #
@@ -107,6 +112,7 @@ resource "azurerm_log_analytics_query_pack_query" "bot_handler_activity" {
   categories     = ["applications"]
   description    = "Messages and conversation events processed by TeamsBotHandler — install, uninstall, and inbound messages with channel info."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "inbound_requests" {
@@ -122,6 +128,7 @@ resource "azurerm_log_analytics_query_pack_query" "inbound_requests" {
   categories     = ["applications"]
   description    = "All requests hitting BotMessagesFunction — shows source IP and timing."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "msal_token_acquisition" {
@@ -137,6 +144,7 @@ resource "azurerm_log_analytics_query_pack_query" "msal_token_acquisition" {
   categories     = ["applications"]
   description    = "MsalAuth debug logs — token cache hits/misses, authority validation, token acquisition success/failure. Useful for diagnosing outbound auth issues."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "jwt_auth_events" {
@@ -152,6 +160,7 @@ resource "azurerm_log_analytics_query_pack_query" "jwt_auth_events" {
   categories     = ["applications"]
   description    = "JWT validation, forbidden, and authentication failure events. Shows issuer, appId, and error details for inbound bot tokens."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "all_traces_by_category" {
@@ -167,6 +176,7 @@ resource "azurerm_log_analytics_query_pack_query" "all_traces_by_category" {
   categories     = ["applications"]
   description    = "Overview of all logger categories and their volume. Useful for understanding which components are active and noisy."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "errors_and_warnings" {
@@ -183,6 +193,7 @@ resource "azurerm_log_analytics_query_pack_query" "errors_and_warnings" {
   categories     = ["applications"]
   description    = "All Warning (2) and Error (3) severity traces across all categories. First place to look when something breaks."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "request_e2e_timeline" {
@@ -206,6 +217,7 @@ resource "azurerm_log_analytics_query_pack_query" "request_e2e_timeline" {
   categories     = ["applications"]
   description    = "Full timeline of a bot message: inbound HTTP → handler processing → MSAL token → outbound reply. Grouped by operation ID for correlation."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "outbound_http_calls" {
@@ -222,6 +234,7 @@ resource "azurerm_log_analytics_query_pack_query" "outbound_http_calls" {
   categories     = ["applications"]
   description    = "HttpClient logs for outbound calls — MSAL token endpoint and Bot Connector reply delivery. Shows URL, status, and duration."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 resource "azurerm_log_analytics_query_pack_query" "function_executions" {
@@ -237,6 +250,7 @@ resource "azurerm_log_analytics_query_pack_query" "function_executions" {
   categories     = ["applications"]
   description    = "All function invocations — BotMessages, QueueProcessor, Health, Notify, etc. Shows success/failure and duration."
   resource_types = ["microsoft.insights/components"]
+  tags           = local.common_tags
 }
 
 #
