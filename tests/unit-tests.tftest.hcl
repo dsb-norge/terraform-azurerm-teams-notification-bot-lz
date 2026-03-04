@@ -581,6 +581,67 @@ run "subnet_private_endpoints_prefix_rejects_invalid" {
   expect_failures = [var.subnet_private_endpoints_prefix]
 }
 
+# --- app_requirements tests ---
+
+run "default_app_requirements_creates_four_queues" {
+  command = plan
+
+  variables {
+    app_requirements = {}
+  }
+
+  assert {
+    condition     = length(azurerm_storage_queue.app) == 4
+    error_message = "Default app_requirements should create 4 queues."
+  }
+}
+
+run "custom_queues_from_app_requirements" {
+  command = plan
+
+  variables {
+    app_requirements = {
+      storage_account_required_queues = ["myqueue", "myqueue-poison"]
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_storage_queue.app) == 2
+    error_message = "Custom app_requirements should create the specified number of queues."
+  }
+}
+
+run "bot_service_type_from_app_requirements" {
+  command = plan
+
+  variables {
+    app_requirements = {
+      bot_service = {
+        type = "SingleTenant"
+      }
+    }
+  }
+
+  assert {
+    condition     = azurerm_bot_service_azure_bot.bot.microsoft_app_type == "SingleTenant"
+    error_message = "Bot service type should come from app_requirements."
+  }
+}
+
+run "auth_precondition_rejects_non_aad" {
+  command = plan
+
+  variables {
+    app_requirements = {
+      bot_auth_settings = {
+        identity_provider = "google"
+      }
+    }
+  }
+
+  expect_failures = [azapi_update_resource.bot_auth_settings]
+}
+
 # --- Output tests (require apply with mock providers) ---
 
 run "outputs_with_defaults" {
@@ -619,6 +680,11 @@ run "outputs_with_defaults" {
   assert {
     condition     = output.deploy_uami_client_id == null
     error_message = "deploy_uami_client_id should be null when deploy_github_actions_from is empty."
+  }
+
+  assert {
+    condition     = output.infrastructure_requirements_unique_hash == ""
+    error_message = "infrastructure_requirements_unique_hash should be empty string with default app_requirements."
   }
 
   assert {

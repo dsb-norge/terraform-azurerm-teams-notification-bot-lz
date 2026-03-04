@@ -30,6 +30,11 @@ output "function_app_name" {
   value       = azapi_resource.bot.name
 }
 
+output "infrastructure_requirements_unique_hash" {
+  description = "Fingerprint of infra-relevant app requirements. Compare against a new release to detect if terraform apply is needed."
+  value       = var.app_requirements.infrastructure_requirements_unique_hash
+}
+
 output "log_analytics_workspace_id" {
   description = "The ID of the Log Analytics workspace."
   value       = azurerm_log_analytics_workspace.bot.id

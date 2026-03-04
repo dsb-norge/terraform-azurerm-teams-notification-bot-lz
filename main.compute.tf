@@ -54,7 +54,7 @@ resource "azapi_resource" "bot" {
         }
         runtime = {
           name    = "dotnet-isolated"
-          version = "10.0"
+          version = var.app_requirements.function_app_runtime_version
         }
         scaleAndConcurrency = {
           maximumInstanceCount = 100
@@ -146,12 +146,12 @@ resource "azapi_update_resource" "bot_auth_settings" {
   body = {
     properties = {
       platform = {
-        enabled = true
+        enabled = var.app_requirements.bot_auth_settings.platform_enabled
       }
       globalValidation = {
-        requireAuthentication       = false
-        unauthenticatedClientAction = "AllowAnonymous"
-        excludedPaths               = ["/api/messages"]
+        requireAuthentication       = var.app_requirements.bot_auth_settings.require_authentication
+        unauthenticatedClientAction = var.app_requirements.bot_auth_settings.unauthenticated_action
+        excludedPaths               = [var.app_requirements.bot_service.messaging_endpoint]
       }
       identityProviders = {
         azureActiveDirectory = {
@@ -166,6 +166,13 @@ resource "azapi_update_resource" "bot_auth_settings" {
         }
       }
       login = {}
+    }
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.app_requirements.bot_auth_settings.identity_provider == "azureActiveDirectory"
+      error_message = "This module only supports azureActiveDirectory as the identity provider."
     }
   }
 }

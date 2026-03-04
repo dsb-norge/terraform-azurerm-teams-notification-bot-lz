@@ -13,7 +13,7 @@ resource "azurerm_monitor_action_group" "bot_alerts" {
 
   webhook_receiver {
     name                    = "teams-bot-alert"
-    service_uri             = "https://${azapi_resource.bot.output.properties.defaultHostName}/api/v1/alert/${var.alert_target_alias}"
+    service_uri             = "https://${azapi_resource.bot.output.properties.defaultHostName}${replace(var.app_requirements.well_known_routes.azure_alert_webhook_receiver_endpoint, "{alias}", var.alert_target_alias)}"
     use_common_alert_schema = true
 
     aad_auth {

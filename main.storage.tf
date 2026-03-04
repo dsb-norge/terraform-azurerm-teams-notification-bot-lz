@@ -15,25 +15,13 @@ resource "azurerm_storage_account" "bot" {
   tags                          = local.common_tags
 }
 
-resource "azurerm_storage_queue" "notifications" {
-  name               = "notifications"
+resource "azurerm_storage_queue" "app" {
+  for_each = toset(var.app_requirements.storage_account_required_queues)
+
+  name               = each.value
   storage_account_id = azurerm_storage_account.bot.id
 }
 
-resource "azurerm_storage_queue" "notifications_poison" {
-  name               = "notifications-poison"
-  storage_account_id = azurerm_storage_account.bot.id
-}
-
-resource "azurerm_storage_queue" "botoperations" {
-  name               = "botoperations"
-  storage_account_id = azurerm_storage_account.bot.id
-}
-
-resource "azurerm_storage_queue" "botoperations_poison" {
-  name               = "botoperations-poison"
-  storage_account_id = azurerm_storage_account.bot.id
-}
 
 # Network rules: Deny by default. The function app accesses storage through private
 # endpoints via VNet integration. Management IPs are allowed for terraform operations.

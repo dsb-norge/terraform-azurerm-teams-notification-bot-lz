@@ -9,13 +9,56 @@ variable "api_app_id" {
 }
 
 variable "api_app_object_id" {
-  description = "Object ID of the Entra ID app registration for API authentication. Used by Azure Monitor action group AAD auth."
+  description = "Object ID of the Entra ID app registration for API authentication. Used by Azure Monitor action group AAD auth. The deploying identity must be an owner of this app registration when alert_target_alias is set."
   type        = string
 
   validation {
     condition     = can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.api_app_object_id))
     error_message = "api_app_object_id must be a valid UUID."
   }
+}
+
+variable "app_requirements" {
+  description = <<-EOT
+    App requirements declared by the function app (from app-requirements.json).
+    Specifies infrastructure dependencies: queues, routes, runtime version, auth
+    settings, bot service config, and required app settings.
+
+    Pass the requirements from the app release:
+      app_requirements = jsondecode(file("app-requirements.json"))
+
+    Extra keys in the JSON (e.g. teams_app_configuration) are silently discarded
+    by the object() type — only infrastructure-relevant fields are consumed.
+  EOT
+  type = object({
+    infrastructure_requirements_unique_hash = optional(string, "")
+    function_app_runtime_version            = optional(string, "10.0")
+    storage_account_required_queues = optional(list(string), [
+      "botoperations", "botoperations-poison",
+      "notifications", "notifications-poison"
+    ])
+    well_known_routes = optional(object({
+      azure_alert_webhook_receiver_endpoint = optional(string, "/api/v1/alert/{alias}")
+    }), {})
+    function_app_required_app_settings = optional(list(string), [
+      "ApiAppId", "APPLICATIONINSIGHTS_CONNECTION_STRING",
+      "AzureWebJobsStorage__blobServiceUri", "AzureWebJobsStorage__clientId",
+      "AzureWebJobsStorage__credential", "AzureWebJobsStorage__queueServiceUri",
+      "AzureWebJobsStorage__tableServiceUri", "BotAppId", "PoisonAlertAlias",
+      "StorageAccountName", "TenantId"
+    ])
+    bot_auth_settings = optional(object({
+      platform_enabled       = optional(bool, true)
+      require_authentication = optional(bool, false)
+      unauthenticated_action = optional(string, "AllowAnonymous")
+      identity_provider      = optional(string, "azureActiveDirectory")
+      required_role          = optional(string, "Notifications.Send")
+    }), {})
+    bot_service = optional(object({
+      type               = optional(string, "SingleTenant")
+      messaging_endpoint = optional(string, "/api/messages")
+    }), {})
+  })
 }
 
 variable "bot_app_id" {
