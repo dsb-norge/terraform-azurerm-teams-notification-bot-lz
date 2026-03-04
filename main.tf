@@ -22,6 +22,14 @@ locals {
     },
     var.tags,
   )
+
+  # Query pack queries have a 5-label limit (Azure API restriction).
+  # Use a fixed subset instead of the full common_tags.
+  query_labels = {
+    "Environment" = var.name
+    "component"   = "teams-notification-bot"
+    "managed-by"  = "terraform"
+  }
 }
 
 data "azurerm_client_config" "current" {}

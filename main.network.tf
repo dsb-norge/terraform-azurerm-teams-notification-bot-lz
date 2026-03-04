@@ -29,6 +29,7 @@ resource "azurerm_subnet" "function_app" {
       ]
     }
   }
+
 }
 
 # Subnet for private endpoints (storage).

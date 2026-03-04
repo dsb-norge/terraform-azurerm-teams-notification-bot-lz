@@ -9,6 +9,10 @@ resource "azurerm_service_plan" "bot" {
   resource_group_name = var.resource_group_name
   sku_name            = "FC1"
   tags                = local.common_tags
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Blob container used by the Flex Consumption runtime to store deployment packages.
