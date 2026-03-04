@@ -1,11 +1,7 @@
-output "resource_group_name" {
-  description = "The name of the resource group (passthrough from input)."
-  value       = module.teams_notification_bot.resource_group_name
-}
-
-output "function_app_name" {
-  description = "The name of the Function App."
-  value       = module.teams_notification_bot.function_app_name
+output "application_insights_connection_string" {
+  description = "The connection string of the Application Insights instance."
+  value       = module.teams_notification_bot.application_insights_connection_string
+  sensitive   = true
 }
 
 output "bot_service_name" {
@@ -18,13 +14,17 @@ output "deploy_uami_client_id" {
   value       = module.teams_notification_bot.deploy_uami_client_id
 }
 
+output "function_app_name" {
+  description = "The name of the Function App."
+  value       = module.teams_notification_bot.function_app_name
+}
+
 output "log_analytics_workspace_id" {
   description = "The ID of the Log Analytics workspace."
   value       = module.teams_notification_bot.log_analytics_workspace_id
 }
 
-output "application_insights_connection_string" {
-  description = "The connection string of the Application Insights instance."
-  value       = module.teams_notification_bot.application_insights_connection_string
-  sensitive   = true
+output "resource_group_name" {
+  description = "The name of the resource group (passthrough from input)."
+  value       = module.teams_notification_bot.resource_group_name
 }

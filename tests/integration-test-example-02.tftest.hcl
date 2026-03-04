@@ -1,8 +1,7 @@
-# Integration test for 02-full scenario
-# Step 1: Create RG + assign storage data plane RBAC to deploying identity
-# Step 2: Deploy the module with all features enabled and verify outputs
+# Integration test for 02-full example
+# Apply the example directory as a module and verify outputs.
 #
-# Note: alert_target_alias is NOT tested here because Azure Monitor Action Group
+# Note: alert_target_alias is overridden to null because Azure Monitor Action Group
 # with AAD webhook auth requires the deploying identity to be an owner of the
 # target Entra ID app registration (error: AadWebhookResourceNotOwnedByCaller).
 # The alerts code is validated via unit tests instead.
@@ -12,53 +11,20 @@ provider "azurerm" {
   storage_use_azuread = true
 }
 
-provider "azapi" {}
-
-run "setup" {
+# Apply example directory as a module
+run "apply" {
   command = apply
 
   module {
-    source = "./tests/setup"
+    source = "./examples/02-full"
   }
 
   variables {
-    name = "itbot02"
-  }
-}
-
-run "deploy_full" {
-  command = apply
-
-  variables {
-    name                = "itbot02"
-    resource_group_name = run.setup.resource_group_name
-    bot_app_id          = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-    api_app_id          = "11111111-2222-3333-4444-555555555555"
-    api_app_object_id   = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-
-    # alert_target_alias omitted — see note at top of file
-    app_namespace = "NotificationBot"
-
-    management_ip_rules = [
-      {
-        name        = "ci-runner"
-        description = "GitHub Actions runner IP"
-        cidr        = "203.0.113.0/24"
-      },
-    ]
-
-    github_org = "example-org"
-    deploy_github_actions_from = {
-      "example-repo" = {
-        environments = ["production"]
-        branches     = ["main"]
-      }
-    }
-
-    tags = {
-      "ApplicationName" = "Notifications"
-      "owner"           = "platform-team"
-    }
+    name               = "itbot02"
+    bot_app_id         = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    api_app_id         = "11111111-2222-3333-4444-555555555555"
+    api_app_object_id  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    alert_target_alias = null # see note at top of file
   }
 
   assert {
@@ -85,5 +51,4 @@ run "deploy_full" {
     condition     = output.log_analytics_workspace_id != ""
     error_message = "Log Analytics workspace ID must not be empty."
   }
-
 }

@@ -1,35 +1,24 @@
-# Integration test for 01-basic scenario
-# Step 1: Create RG + assign storage data plane RBAC to deploying identity
-# Step 2: Deploy the module into that RG and verify outputs
+# Integration test for 01-basic example
+# Apply the example directory as a module and verify outputs.
 
 provider "azurerm" {
   features {}
   storage_use_azuread = true
 }
 
-provider "azapi" {}
-
-run "setup" {
+# Apply example directory as a module
+run "apply" {
   command = apply
 
   module {
-    source = "./tests/setup"
+    source = "./examples/01-basic"
   }
 
   variables {
-    name = "itbot01"
-  }
-}
-
-run "deploy_basic" {
-  command = apply
-
-  variables {
-    name                = "itbot01"
-    resource_group_name = run.setup.resource_group_name
-    bot_app_id          = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-    api_app_id          = "11111111-2222-3333-4444-555555555555"
-    api_app_object_id   = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    name              = "itbot01"
+    bot_app_id        = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    api_app_id        = "11111111-2222-3333-4444-555555555555"
+    api_app_object_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
   }
 
   assert {
