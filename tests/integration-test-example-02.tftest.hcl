@@ -1,7 +1,7 @@
 # Integration test for 02-full example
 # Apply the example directory as a module and verify outputs.
 #
-# Note: alert_target_alias is overridden to null because Azure Monitor Action Group
+# Note: alert_target_alias is overridden to empty string because Azure Monitor Action Group
 # with AAD webhook auth requires the deploying identity to be an owner of the
 # target Entra ID app registration (error: AadWebhookResourceNotOwnedByCaller).
 # The alerts code is validated via unit tests instead.
@@ -24,7 +24,7 @@ run "apply" {
     bot_app_id         = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     api_app_id         = "11111111-2222-3333-4444-555555555555"
     api_app_object_id  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-    alert_target_alias = null # see note at top of file
+    alert_target_alias = "" # see note at top of file
   }
 
   assert {

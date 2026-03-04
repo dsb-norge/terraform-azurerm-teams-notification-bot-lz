@@ -19,7 +19,7 @@ variable "name" {
 }
 
 variable "alert_target_alias" {
-  description = "Alias for the Azure Monitor action group alert target. Set to null to skip alert configuration."
+  description = "Alias for the Azure Monitor action group alert target. Set to empty string to skip alert configuration."
   type        = string
   default     = "ops-alerts"
 }
