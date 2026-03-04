@@ -123,29 +123,12 @@ module "teams_notification_bot" {
 ```
 ## Outputs
 
-The following outputs are exported:
-
-### <a name="output_application_insights_connection_string"></a> [application\_insights\_connection\_string](#output\_application\_insights\_connection\_string)
-
-Description: The connection string of the Application Insights instance.
-
-### <a name="output_bot_service_name"></a> [bot\_service\_name](#output\_bot\_service\_name)
-
-Description: The name of the Bot Service.
-
-### <a name="output_deploy_uami_client_id"></a> [deploy\_uami\_client\_id](#output\_deploy\_uami\_client\_id)
-
-Description: The client ID of the deploy user-assigned managed identity. Null when deploy\_github\_actions\_from is empty.
-
-### <a name="output_function_app_name"></a> [function\_app\_name](#output\_function\_app\_name)
-
-Description: The name of the Function App.
-
-### <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id)
-
-Description: The ID of the Log Analytics workspace.
-
-### <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name)
-
-Description: The name of the resource group (passthrough from input).
+| Name | Description |
+|------|-------------|
+| <a name="output_application_insights_connection_string"></a> [application\_insights\_connection\_string](#output\_application\_insights\_connection\_string) | The connection string of the Application Insights instance. |
+| <a name="output_bot_service_name"></a> [bot\_service\_name](#output\_bot\_service\_name) | The name of the Bot Service. |
+| <a name="output_deploy_uami_client_id"></a> [deploy\_uami\_client\_id](#output\_deploy\_uami\_client\_id) | The client ID of the deploy user-assigned managed identity. Null when deploy\_github\_actions\_from is empty. |
+| <a name="output_function_app_name"></a> [function\_app\_name](#output\_function\_app\_name) | The name of the Function App. |
+| <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id) | The ID of the Log Analytics workspace. |
+| <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | The name of the resource group (passthrough from input). |
 <!-- END_TF_DOCS -->
