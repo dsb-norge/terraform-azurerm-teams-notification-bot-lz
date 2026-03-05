@@ -131,9 +131,16 @@ override_resource {
 }
 
 override_resource {
-  target = azurerm_private_endpoint.endpoints
+  target = azurerm_private_endpoint.managed
   values = {
     id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test-bot/providers/Microsoft.Network/privateEndpoints/mock-pe"
+  }
+}
+
+override_resource {
+  target = azurerm_private_endpoint.unmanaged
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test-bot/providers/Microsoft.Network/privateEndpoints/mock-pe-unmanaged"
   }
 }
 
@@ -352,7 +359,7 @@ run "resource_naming_uses_naming_module" {
   command = plan
 
   assert {
-    condition     = azurerm_virtual_network.bot.name == "vnet-test-bot"
+    condition     = azurerm_virtual_network.bot[0].name == "vnet-test-bot"
     error_message = "VNet name should use naming module prefix."
   }
 
@@ -398,7 +405,7 @@ run "name_accepts_valid_lowercase" {
   }
 
   assert {
-    condition     = azurerm_virtual_network.bot.name == "vnet-my-valid-bot-123"
+    condition     = azurerm_virtual_network.bot[0].name == "vnet-my-valid-bot-123"
     error_message = "Valid lowercase name should be accepted."
   }
 }
@@ -549,36 +556,331 @@ run "deploy_uami_requires_github_org" {
   expect_failures = [azurerm_user_assigned_identity.deploy]
 }
 
-# --- VNet variable validation ---
+# --- network_config validation ---
 
-run "vnet_address_space_rejects_empty" {
+run "network_config_subnet_prefix_rejects_invalid_cidr" {
   command = plan
 
   variables {
-    vnet_address_space = []
+    network_config = {
+      subnet_function_app_prefix = "not-a-cidr"
+    }
   }
 
-  expect_failures = [var.vnet_address_space]
+  expect_failures = [var.network_config]
 }
 
-run "subnet_function_app_prefix_rejects_invalid" {
+run "network_config_subnet_prefix_rejects_too_small" {
   command = plan
 
   variables {
-    subnet_function_app_prefix = "not-a-cidr"
+    network_config = {
+      subnet_function_app_prefix = "10.0.0.0/25"
+    }
   }
 
-  expect_failures = [var.subnet_function_app_prefix]
+  expect_failures = [var.network_config]
 }
 
-run "subnet_private_endpoints_prefix_rejects_invalid" {
+run "network_config_pe_subnet_prefix_rejects_invalid_cidr" {
   command = plan
 
   variables {
-    subnet_private_endpoints_prefix = "not-a-cidr"
+    network_config = {
+      subnet_private_endpoints_prefix = "not-a-cidr"
+    }
   }
 
-  expect_failures = [var.subnet_private_endpoints_prefix]
+  expect_failures = [var.network_config]
+}
+
+run "network_byon_rejects_missing_func_subnet" {
+  command = plan
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  expect_failures = [var.network_config]
+}
+
+run "network_byon_rejects_missing_pe_subnet" {
+  command = plan
+
+  variables {
+    network_config = {
+      create_network                  = false
+      existing_subnet_function_app_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      manage_private_dns_zone_groups  = false
+    }
+  }
+
+  expect_failures = [var.network_config]
+}
+
+run "network_byon_managed_dns_rejects_missing_zone_ids" {
+  command = plan
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = true
+    }
+  }
+
+  expect_failures = [var.network_config]
+}
+
+# --- network_config Mode 1 (self-contained) tests ---
+
+run "network_default_creates_vnet" {
+  command = plan
+
+  assert {
+    condition     = length(azurerm_virtual_network.bot) == 1
+    error_message = "Default network_config should create a VNet."
+  }
+
+  assert {
+    condition     = length(azurerm_subnet.function_app) == 1
+    error_message = "Default network_config should create a function app subnet."
+  }
+
+  assert {
+    condition     = length(azurerm_subnet.private_endpoints) == 1
+    error_message = "Default network_config should create a private endpoints subnet."
+  }
+}
+
+run "network_default_creates_dns_zones" {
+  command = plan
+
+  assert {
+    condition     = length(azurerm_private_dns_zone.zones) == 3
+    error_message = "Default network_config should create 3 DNS zones."
+  }
+
+  assert {
+    condition     = length(azurerm_private_dns_zone_virtual_network_link.links) == 3
+    error_message = "Default network_config should create 3 VNet links."
+  }
+}
+
+run "network_default_creates_managed_pes" {
+  command = plan
+
+  assert {
+    condition     = length(azurerm_private_endpoint.managed) == 3
+    error_message = "Default network_config should create 3 managed PEs."
+  }
+
+  assert {
+    condition     = length(azurerm_private_endpoint.unmanaged) == 0
+    error_message = "Default network_config should create 0 unmanaged PEs."
+  }
+}
+
+run "network_mode1_custom_prefixes" {
+  command = plan
+
+  variables {
+    network_config = {
+      vnet_address_space              = ["172.16.0.0/16"]
+      subnet_function_app_prefix      = "172.16.0.0/24"
+      subnet_private_endpoints_prefix = "172.16.1.0/24"
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_virtual_network.bot) == 1
+    error_message = "Mode 1 with custom prefixes should create a VNet."
+  }
+}
+
+run "network_mode1_ignores_existing_subnet_ids" {
+  command = plan
+
+  variables {
+    network_config = {
+      create_network                       = true
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_virtual_network.bot) == 1
+    error_message = "Mode 1 should create VNet even if existing subnet IDs are set (they are ignored)."
+  }
+}
+
+# --- network_config Mode 2 (BYON) tests ---
+
+run "network_byon_skips_vnet" {
+  command = plan
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_virtual_network.bot) == 0
+    error_message = "BYON mode should not create a VNet."
+  }
+
+  assert {
+    condition     = length(azurerm_subnet.function_app) == 0
+    error_message = "BYON mode should not create subnets."
+  }
+
+  assert {
+    condition     = length(azurerm_subnet.private_endpoints) == 0
+    error_message = "BYON mode should not create subnets."
+  }
+}
+
+run "network_byon_skips_dns_zones" {
+  command = plan
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_private_dns_zone.zones) == 0
+    error_message = "BYON mode should not create DNS zones."
+  }
+
+  assert {
+    condition     = length(azurerm_private_dns_zone_virtual_network_link.links) == 0
+    error_message = "BYON mode should not create VNet links."
+  }
+}
+
+run "network_byon_creates_unmanaged_pes" {
+  command = plan
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_private_endpoint.managed) == 0
+    error_message = "BYON with unmanaged DNS should create 0 managed PEs."
+  }
+
+  assert {
+    condition     = length(azurerm_private_endpoint.unmanaged) == 3
+    error_message = "BYON with unmanaged DNS should create 3 unmanaged PEs."
+  }
+}
+
+run "network_byon_with_caller_dns" {
+  command = plan
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = true
+      private_dns_zone_resource_ids = {
+        blob  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-dns/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net"
+        queue = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-dns/providers/Microsoft.Network/privateDnsZones/privatelink.queue.core.windows.net"
+        table = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-dns/providers/Microsoft.Network/privateDnsZones/privatelink.table.core.windows.net"
+      }
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_private_endpoint.managed) == 3
+    error_message = "BYON with caller DNS should create 3 managed PEs."
+  }
+
+  assert {
+    condition     = length(azurerm_private_endpoint.unmanaged) == 0
+    error_message = "BYON with caller DNS should create 0 unmanaged PEs."
+  }
+
+  assert {
+    condition     = length(azurerm_private_dns_zone.zones) == 0
+    error_message = "BYON with caller DNS should not create module DNS zones."
+  }
+}
+
+# --- network_config output tests (apply with mocks) ---
+
+run "network_outputs_mode1" {
+  command = apply
+
+  assert {
+    condition     = output.vnet_id != null
+    error_message = "Mode 1 should output a non-null vnet_id."
+  }
+
+  assert {
+    condition     = output.subnet_function_app_id != null && output.subnet_function_app_id != ""
+    error_message = "Mode 1 should output a non-null subnet_function_app_id."
+  }
+
+  assert {
+    condition     = output.subnet_private_endpoints_id != null && output.subnet_private_endpoints_id != ""
+    error_message = "Mode 1 should output a non-null subnet_private_endpoints_id."
+  }
+
+  assert {
+    condition     = length(output.private_endpoint_ids) == 3
+    error_message = "Mode 1 should output 3 private endpoint IDs."
+  }
+}
+
+run "network_outputs_mode2" {
+  command = apply
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  assert {
+    condition     = output.vnet_id == null
+    error_message = "Mode 2 should output null vnet_id."
+  }
+
+  assert {
+    condition     = output.subnet_function_app_id == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+    error_message = "Mode 2 should output the provided subnet_function_app_id."
+  }
+
+  assert {
+    condition     = length(output.private_endpoint_ids) == 3
+    error_message = "Mode 2 should output 3 private endpoint IDs."
+  }
 }
 
 # --- app_requirements tests ---

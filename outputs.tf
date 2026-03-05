@@ -40,6 +40,17 @@ output "log_analytics_workspace_id" {
   value       = azurerm_log_analytics_workspace.bot.id
 }
 
+output "private_endpoint_ids" {
+  description = "Map of private endpoint resource IDs."
+  value = {
+    for k, pe in(
+      var.network_config.manage_private_dns_zone_groups
+      ? azurerm_private_endpoint.managed
+      : azurerm_private_endpoint.unmanaged
+    ) : k => pe.id
+  }
+}
+
 output "resource_group_name" {
   description = "The name of the resource group (passthrough from input)."
   value       = var.resource_group_name
@@ -50,6 +61,16 @@ output "storage_account_name" {
   value       = azurerm_storage_account.bot.name
 }
 
+output "subnet_function_app_id" {
+  description = "ID of the function app VNet integration subnet."
+  value       = local.subnet_function_app_id
+}
+
+output "subnet_private_endpoints_id" {
+  description = "ID of the private endpoints subnet."
+  value       = local.subnet_private_endpoints_id
+}
+
 output "uami_client_id" {
   description = "The client ID of the bot's user-assigned managed identity."
   value       = azurerm_user_assigned_identity.bot.client_id
@@ -58,4 +79,9 @@ output "uami_client_id" {
 output "uami_principal_id" {
   description = "The principal ID of the bot's user-assigned managed identity."
   value       = azurerm_user_assigned_identity.bot.principal_id
+}
+
+output "vnet_id" {
+  description = "ID of the VNet (null when using existing network)."
+  value       = local.create_network ? azurerm_virtual_network.bot[0].id : null
 }

@@ -78,7 +78,8 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | [azurerm_monitor_metric_alert.storage_heartbeat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_metric_alert) | resource |
 | [azurerm_private_dns_zone.zones](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_dns_zone) | resource |
 | [azurerm_private_dns_zone_virtual_network_link.links](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_dns_zone_virtual_network_link) | resource |
-| [azurerm_private_endpoint.endpoints](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
+| [azurerm_private_endpoint.managed](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
+| [azurerm_private_endpoint.unmanaged](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint) | resource |
 | [azurerm_role_assignment.deploy_uami_reader](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.deploy_uami_website_contributor](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.uami_storage_blob_data_owner](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
@@ -113,10 +114,8 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | <a name="input_github_org"></a> [github\_org](#input\_github\_org) | GitHub organization name for OIDC subject claims in deploy UAMI federated identity credentials. | `string` | `""` | no |
 | <a name="input_location"></a> [location](#input\_location) | Azure region for all resources. | `string` | `"norwayeast"` | no |
 | <a name="input_management_ip_rules"></a> [management\_ip\_rules](#input\_management\_ip\_rules) | IP addresses/ranges allowed for management access (terraform apply, deployment, testing). Used by function app and storage network rules. | <pre>list(object({<br/>    name        = string<br/>    description = string<br/>    cidr        = string<br/>  }))</pre> | `[]` | no |
-| <a name="input_subnet_function_app_prefix"></a> [subnet\_function\_app\_prefix](#input\_subnet\_function\_app\_prefix) | Address prefix for the Function App VNet integration subnet. Must be at least /24. | `string` | `"10.0.0.0/24"` | no |
-| <a name="input_subnet_private_endpoints_prefix"></a> [subnet\_private\_endpoints\_prefix](#input\_subnet\_private\_endpoints\_prefix) | Address prefix for the private endpoints subnet. | `string` | `"10.0.1.0/24"` | no |
+| <a name="input_network_config"></a> [network\_config](#input\_network\_config) | Network configuration for the module. Two modes:<br/><br/>Mode 1 — Module-managed (default):<br/>  Leave network\_config as default or set create\_network = true.<br/>  Module creates VNet, subnets, private DNS zones, and VNet links.<br/><br/>Mode 2 — Bring your own network:<br/>  Set create\_network = false and provide existing subnet IDs.<br/>  Module skips VNet/subnet/DNS zone creation entirely.<br/>  Set manage\_private\_dns\_zone\_groups = false if central infrastructure<br/>  (e.g. Azure Policy) handles private DNS registration. | <pre>object({<br/>    create_network = optional(bool, true)<br/><br/>    # Mode 1 only (ignored when create_network = false):<br/>    vnet_address_space              = optional(list(string), ["10.0.0.0/16"])<br/>    subnet_function_app_prefix      = optional(string, "10.0.0.0/24")<br/>    subnet_private_endpoints_prefix = optional(string, "10.0.1.0/24")<br/><br/>    # Mode 2 only (required when create_network = false):<br/>    existing_subnet_function_app_id      = optional(string, "")<br/>    existing_subnet_private_endpoints_id = optional(string, "")<br/><br/>    # PE DNS behavior (both modes):<br/>    manage_private_dns_zone_groups = optional(bool, true)<br/>    private_dns_zone_resource_ids  = optional(map(string), {})<br/>  })</pre> | `{}` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Additional tags to apply to all resources. Caller tags take precedence over module defaults on conflict. | `map(string)` | `{}` | no |
-| <a name="input_vnet_address_space"></a> [vnet\_address\_space](#input\_vnet\_address\_space) | Address space for the virtual network. | `list(string)` | <pre>[<br/>  "10.0.0.0/16"<br/>]</pre> | no |
 
 ## Outputs
 
@@ -130,10 +129,14 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | <a name="output_function_app_name"></a> [function\_app\_name](#output\_function\_app\_name) | The name of the Function App. |
 | <a name="output_infrastructure_requirements_unique_hash"></a> [infrastructure\_requirements\_unique\_hash](#output\_infrastructure\_requirements\_unique\_hash) | Fingerprint of infra-relevant app requirements. Compare against a new release to detect if terraform apply is needed. |
 | <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id) | The ID of the Log Analytics workspace. |
+| <a name="output_private_endpoint_ids"></a> [private\_endpoint\_ids](#output\_private\_endpoint\_ids) | Map of private endpoint resource IDs. |
 | <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | The name of the resource group (passthrough from input). |
 | <a name="output_storage_account_name"></a> [storage\_account\_name](#output\_storage\_account\_name) | The name of the Storage Account. |
+| <a name="output_subnet_function_app_id"></a> [subnet\_function\_app\_id](#output\_subnet\_function\_app\_id) | ID of the function app VNet integration subnet. |
+| <a name="output_subnet_private_endpoints_id"></a> [subnet\_private\_endpoints\_id](#output\_subnet\_private\_endpoints\_id) | ID of the private endpoints subnet. |
 | <a name="output_uami_client_id"></a> [uami\_client\_id](#output\_uami\_client\_id) | The client ID of the bot's user-assigned managed identity. |
 | <a name="output_uami_principal_id"></a> [uami\_principal\_id](#output\_uami\_principal\_id) | The principal ID of the bot's user-assigned managed identity. |
+| <a name="output_vnet_id"></a> [vnet\_id](#output\_vnet\_id) | ID of the VNet (null when using existing network). |
 
 ## Modules
 

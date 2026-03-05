@@ -22,8 +22,6 @@ terraform apply -var="name=my-bot" -var="bot_app_id=..." -var="api_app_id=..." -
 
 <!-- BEGIN_TF_DOCS -->
 
-
-
 ```hcl
 provider "azurerm" {
   storage_use_azuread = true
@@ -121,6 +119,7 @@ module "teams_notification_bot" {
   depends_on = [time_sleep.rbac_propagation]
 }
 ```
+
 ## Outputs
 
 | Name | Description |
@@ -130,5 +129,7 @@ module "teams_notification_bot" {
 | <a name="output_deploy_uami_client_id"></a> [deploy\_uami\_client\_id](#output\_deploy\_uami\_client\_id) | The client ID of the deploy user-assigned managed identity. Null when deploy\_github\_actions\_from is empty. |
 | <a name="output_function_app_name"></a> [function\_app\_name](#output\_function\_app\_name) | The name of the Function App. |
 | <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id) | The ID of the Log Analytics workspace. |
+| <a name="output_private_endpoint_ids"></a> [private\_endpoint\_ids](#output\_private\_endpoint\_ids) | Map of private endpoint resource IDs. |
 | <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | The name of the resource group (passthrough from input). |
+| <a name="output_vnet_id"></a> [vnet\_id](#output\_vnet\_id) | ID of the VNet created by the module. |
 <!-- END_TF_DOCS -->

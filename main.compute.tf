@@ -7,11 +7,11 @@ resource "azurerm_service_plan" "bot" {
   name                = module.naming.app_service_plan.name
   os_type             = "Linux"
   resource_group_name = var.resource_group_name
-  sku_name            = "FC1"
+  sku_name            = "FC1" # Flex Consumption (the only FC tier) — serverless, per-execution billing with always-ready instance support and VNet integration. Instance size is controlled by instanceMemoryMB, not the SKU.
   tags                = local.common_tags
 
   lifecycle {
-    create_before_destroy = true
+    create_before_destroy = true # prevent replacement failures when the function app still references the old plan
   }
 }
 
@@ -43,7 +43,7 @@ resource "azapi_resource" "bot" {
     properties = {
       serverFarmId           = azurerm_service_plan.bot.id
       httpsOnly              = true
-      virtualNetworkSubnetId = azurerm_subnet.function_app.id
+      virtualNetworkSubnetId = local.subnet_function_app_id
 
       functionAppConfig = {
         deployment = {
@@ -62,7 +62,7 @@ resource "azapi_resource" "bot" {
         }
         scaleAndConcurrency = {
           maximumInstanceCount = 100
-          instanceMemoryMB     = 2048
+          instanceMemoryMB     = 2048 # next down is 512 MB, which is too small
           triggers = {
             http = {
               perInstanceConcurrency = 16

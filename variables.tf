@@ -206,30 +206,83 @@ variable "management_ip_rules" {
   }
 }
 
-variable "subnet_function_app_prefix" {
-  description = "Address prefix for the Function App VNet integration subnet. Must be at least /24."
-  type        = string
-  default     = "10.0.0.0/24"
+variable "network_config" {
+  description = <<-EOT
+    Network configuration for the module. Two modes:
+
+    Mode 1 — Module-managed (default):
+      Leave network_config as default or set create_network = true.
+      Module creates VNet, subnets, private DNS zones, and VNet links.
+
+    Mode 2 — Bring your own network:
+      Set create_network = false and provide existing subnet IDs.
+      Module skips VNet/subnet/DNS zone creation entirely.
+      Set manage_private_dns_zone_groups = false if central infrastructure
+      (e.g. Azure Policy) handles private DNS registration.
+  EOT
+  type = object({
+    create_network = optional(bool, true)
+
+    # Mode 1 only (ignored when create_network = false):
+    vnet_address_space              = optional(list(string), ["10.0.0.0/16"])
+    subnet_function_app_prefix      = optional(string, "10.0.0.0/24")
+    subnet_private_endpoints_prefix = optional(string, "10.0.1.0/24")
+
+    # Mode 2 only (required when create_network = false):
+    existing_subnet_function_app_id      = optional(string, "")
+    existing_subnet_private_endpoints_id = optional(string, "")
+
+    # PE DNS behavior (both modes):
+    manage_private_dns_zone_groups = optional(bool, true)
+    private_dns_zone_resource_ids  = optional(map(string), {})
+  })
+  default = {}
 
   validation {
-    condition     = can(cidrhost(var.subnet_function_app_prefix, 0))
-    error_message = "The 'subnet_function_app_prefix' must be a valid CIDR block."
+    condition = (
+      var.network_config.create_network
+      || (
+        var.network_config.existing_subnet_function_app_id != ""
+        && var.network_config.existing_subnet_private_endpoints_id != ""
+      )
+    )
+    error_message = "When create_network is false, both existing_subnet_function_app_id and existing_subnet_private_endpoints_id must be provided."
   }
 
   validation {
-    condition     = can(tonumber(split("/", var.subnet_function_app_prefix)[1])) && tonumber(split("/", var.subnet_function_app_prefix)[1]) <= 24
-    error_message = "The 'subnet_function_app_prefix' must be at least /24 (prefix length <= 24)."
+    condition = !(
+      !var.network_config.create_network
+      && var.network_config.manage_private_dns_zone_groups
+      && length(var.network_config.private_dns_zone_resource_ids) == 0
+    )
+    error_message = "When create_network is false and manage_private_dns_zone_groups is true, private_dns_zone_resource_ids must be provided (the module cannot create DNS zones without a VNet to link them to)."
   }
-}
-
-variable "subnet_private_endpoints_prefix" {
-  description = "Address prefix for the private endpoints subnet."
-  type        = string
-  default     = "10.0.1.0/24"
 
   validation {
-    condition     = can(cidrhost(var.subnet_private_endpoints_prefix, 0))
-    error_message = "The 'subnet_private_endpoints_prefix' must be a valid CIDR block."
+    condition = (
+      !var.network_config.create_network
+      || can(cidrhost(var.network_config.subnet_function_app_prefix, 0))
+    )
+    error_message = "subnet_function_app_prefix must be a valid CIDR block."
+  }
+
+  validation {
+    condition = (
+      !var.network_config.create_network
+      || (
+        can(tonumber(split("/", var.network_config.subnet_function_app_prefix)[1]))
+        && tonumber(split("/", var.network_config.subnet_function_app_prefix)[1]) <= 24
+      )
+    )
+    error_message = "subnet_function_app_prefix must be at least /24."
+  }
+
+  validation {
+    condition = (
+      !var.network_config.create_network
+      || can(cidrhost(var.network_config.subnet_private_endpoints_prefix, 0))
+    )
+    error_message = "subnet_private_endpoints_prefix must be a valid CIDR block."
   }
 }
 
@@ -239,13 +292,3 @@ variable "tags" {
   default     = {}
 }
 
-variable "vnet_address_space" {
-  description = "Address space for the virtual network."
-  type        = list(string)
-  default     = ["10.0.0.0/16"]
-
-  validation {
-    condition     = length(var.vnet_address_space) > 0
-    error_message = "The 'vnet_address_space' must contain at least one CIDR block."
-  }
-}

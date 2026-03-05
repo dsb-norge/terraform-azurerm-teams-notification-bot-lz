@@ -24,7 +24,17 @@ output "log_analytics_workspace_id" {
   value       = module.teams_notification_bot.log_analytics_workspace_id
 }
 
+output "private_endpoint_ids" {
+  description = "Map of private endpoint resource IDs."
+  value       = module.teams_notification_bot.private_endpoint_ids
+}
+
 output "resource_group_name" {
   description = "The name of the resource group (passthrough from input)."
   value       = module.teams_notification_bot.resource_group_name
+}
+
+output "vnet_id" {
+  description = "ID of the VNet created by the module."
+  value       = module.teams_notification_bot.vnet_id
 }

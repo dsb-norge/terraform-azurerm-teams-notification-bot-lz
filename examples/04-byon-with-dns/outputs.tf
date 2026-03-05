@@ -13,11 +13,6 @@ output "function_app_name" {
   value       = module.teams_notification_bot.function_app_name
 }
 
-output "log_analytics_workspace_id" {
-  description = "The ID of the Log Analytics workspace."
-  value       = module.teams_notification_bot.log_analytics_workspace_id
-}
-
 output "private_endpoint_ids" {
   description = "Map of private endpoint resource IDs."
   value       = module.teams_notification_bot.private_endpoint_ids
@@ -44,6 +39,6 @@ output "subnet_private_endpoints_id" {
 }
 
 output "vnet_id" {
-  description = "ID of the VNet created by the module."
+  description = "ID of the VNet (null when using existing network)."
   value       = module.teams_notification_bot.vnet_id
 }

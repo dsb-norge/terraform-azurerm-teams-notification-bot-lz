@@ -1,9 +1,20 @@
 # Integration test for 01-basic example
 # Apply the example directory as a module and verify outputs.
+# Mode 1 (default): module creates VNet, subnets, DNS zones, PEs.
 
 provider "azurerm" {
   features {}
   storage_use_azuread = true
+}
+
+# Generate random UUIDs for app registration placeholders to avoid
+# MsaAppId collisions when integration tests run in parallel.
+run "setup" {
+  command = apply
+
+  module {
+    source = "./tests/setup"
+  }
 }
 
 # Apply example directory as a module
@@ -16,9 +27,9 @@ run "apply" {
 
   variables {
     name              = "itbot01"
-    bot_app_id        = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-    api_app_id        = "11111111-2222-3333-4444-555555555555"
-    api_app_object_id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    bot_app_id        = run.setup.bot_app_id
+    api_app_id        = run.setup.api_app_id
+    api_app_object_id = run.setup.api_app_object_id
   }
 
   assert {
@@ -49,5 +60,26 @@ run "apply" {
   assert {
     condition     = output.log_analytics_workspace_id != ""
     error_message = "Log Analytics workspace ID must not be empty."
+  }
+
+  # Mode 1 network outputs: module creates its own VNet and subnets
+  assert {
+    condition     = output.vnet_id != null
+    error_message = "Mode 1 should create a VNet (vnet_id should be non-null)."
+  }
+
+  assert {
+    condition     = output.subnet_function_app_id != ""
+    error_message = "Mode 1 should output a non-empty subnet_function_app_id."
+  }
+
+  assert {
+    condition     = output.subnet_private_endpoints_id != ""
+    error_message = "Mode 1 should output a non-empty subnet_private_endpoints_id."
+  }
+
+  assert {
+    condition     = length(output.private_endpoint_ids) == 3
+    error_message = "Mode 1 should create 3 private endpoints."
   }
 }
