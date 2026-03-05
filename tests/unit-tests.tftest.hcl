@@ -575,7 +575,7 @@ run "network_config_subnet_prefix_rejects_too_small" {
 
   variables {
     network_config = {
-      subnet_function_app_prefix = "10.0.0.0/25"
+      subnet_function_app_prefix = "10.0.0.0/28"
     }
   }
 
@@ -592,6 +592,254 @@ run "network_config_pe_subnet_prefix_rejects_invalid_cidr" {
   }
 
   expect_failures = [var.network_config]
+}
+
+run "network_config_pe_subnet_prefix_rejects_too_small" {
+  command = plan
+
+  variables {
+    network_config = {
+      subnet_private_endpoints_prefix = "10.0.1.0/29"
+    }
+  }
+
+  expect_failures = [var.network_config]
+}
+
+# --- BYON subnet postcondition tests (using override_data to simulate Azure API responses) ---
+
+run "network_byon_rejects_missing_delegation" {
+  command = plan
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  expect_failures = [data.azapi_resource.byon_subnet_function_app[0]]
+}
+
+run "network_byon_rejects_delegated_pe_subnet" {
+  command = plan
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations = [{
+            name = "flex-consumption"
+            properties = {
+              serviceName = "Microsoft.App/environments"
+              actions     = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+            }
+          }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations = [{
+            name = "some-delegation"
+            properties = {
+              serviceName = "Microsoft.Sql/servers"
+              actions     = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+            }
+          }]
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  expect_failures = [data.azapi_resource.byon_subnet_private_endpoints[0]]
+}
+
+run "network_byon_rejects_func_subnet_too_small" {
+  command = plan
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations = [{
+            name = "flex-consumption"
+            properties = {
+              serviceName = "Microsoft.App/environments"
+              actions     = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+            }
+          }]
+          addressPrefix = "10.100.0.0/28"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  expect_failures = [data.azapi_resource.byon_subnet_function_app[0]]
+}
+
+run "network_byon_rejects_pe_subnet_too_small" {
+  command = plan
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations = [{
+            name = "flex-consumption"
+            properties = {
+              serviceName = "Microsoft.App/environments"
+              actions     = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+            }
+          }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/29"
+        }
+      }
+    }
+  }
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  expect_failures = [data.azapi_resource.byon_subnet_private_endpoints[0]]
+}
+
+run "network_byon_accepts_valid_subnets" {
+  command = plan
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations = [{
+            name = "flex-consumption"
+            properties = {
+              serviceName = "Microsoft.App/environments"
+              actions     = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+            }
+          }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = false
+    }
+  }
+
+  # No expect_failures — this should succeed
+  assert {
+    condition     = length(data.azapi_resource.byon_subnet_function_app) == 1
+    error_message = "BYON should read the function app subnet."
+  }
+
+  assert {
+    condition     = length(data.azapi_resource.byon_subnet_private_endpoints) == 1
+    error_message = "BYON should read the PE subnet."
+  }
 }
 
 run "network_byon_rejects_missing_func_subnet" {
@@ -725,6 +973,30 @@ run "network_mode1_ignores_existing_subnet_ids" {
 run "network_byon_skips_vnet" {
   command = plan
 
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = [{ name = "flex", properties = { serviceName = "Microsoft.App/environments", actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] } }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
+
   variables {
     network_config = {
       create_network                       = false
@@ -753,6 +1025,30 @@ run "network_byon_skips_vnet" {
 run "network_byon_skips_dns_zones" {
   command = plan
 
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = [{ name = "flex", properties = { serviceName = "Microsoft.App/environments", actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] } }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
+
   variables {
     network_config = {
       create_network                       = false
@@ -776,6 +1072,30 @@ run "network_byon_skips_dns_zones" {
 run "network_byon_creates_unmanaged_pes" {
   command = plan
 
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = [{ name = "flex", properties = { serviceName = "Microsoft.App/environments", actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] } }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
+
   variables {
     network_config = {
       create_network                       = false
@@ -798,6 +1118,30 @@ run "network_byon_creates_unmanaged_pes" {
 
 run "network_byon_with_caller_dns" {
   command = plan
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = [{ name = "flex", properties = { serviceName = "Microsoft.App/environments", actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] } }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
 
   variables {
     network_config = {
@@ -857,6 +1201,30 @@ run "network_outputs_mode1" {
 
 run "network_outputs_mode2" {
   command = apply
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = [{ name = "flex", properties = { serviceName = "Microsoft.App/environments", actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] } }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
 
   variables {
     network_config = {

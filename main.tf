@@ -34,16 +34,18 @@ locals {
   # Network mode resolution
   create_network = var.network_config.create_network
 
+  # Reference the data sources in BYON mode to ensure postcondition validation
+  # runs before resources consume the subnet IDs.
   subnet_function_app_id = (
     local.create_network
     ? azurerm_subnet.function_app[0].id
-    : var.network_config.existing_subnet_function_app_id
+    : data.azapi_resource.byon_subnet_function_app[0].resource_id
   )
 
   subnet_private_endpoints_id = (
     local.create_network
     ? azurerm_subnet.private_endpoints[0].id
-    : var.network_config.existing_subnet_private_endpoints_id
+    : data.azapi_resource.byon_subnet_private_endpoints[0].resource_id
   )
 
   # DNS zone resolution: caller-provided > module-created > none

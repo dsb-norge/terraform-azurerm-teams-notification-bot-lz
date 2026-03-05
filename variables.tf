@@ -271,10 +271,10 @@ variable "network_config" {
       !var.network_config.create_network
       || (
         can(tonumber(split("/", var.network_config.subnet_function_app_prefix)[1]))
-        && tonumber(split("/", var.network_config.subnet_function_app_prefix)[1]) <= 24
+        && tonumber(split("/", var.network_config.subnet_function_app_prefix)[1]) <= 27
       )
     )
-    error_message = "subnet_function_app_prefix must be at least /24."
+    error_message = "subnet_function_app_prefix must be at least /27 (recommended size for Flex Consumption)."
   }
 
   validation {
@@ -283,6 +283,17 @@ variable "network_config" {
       || can(cidrhost(var.network_config.subnet_private_endpoints_prefix, 0))
     )
     error_message = "subnet_private_endpoints_prefix must be a valid CIDR block."
+  }
+
+  validation {
+    condition = (
+      !var.network_config.create_network
+      || (
+        can(tonumber(split("/", var.network_config.subnet_private_endpoints_prefix)[1]))
+        && tonumber(split("/", var.network_config.subnet_private_endpoints_prefix)[1]) <= 28
+      )
+    )
+    error_message = "subnet_private_endpoints_prefix must be at least /28."
   }
 }
 
