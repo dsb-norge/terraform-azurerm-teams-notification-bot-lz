@@ -4,19 +4,19 @@
 
 # Bot UAMI → storage account
 resource "azurerm_role_assignment" "uami_storage_blob_data_owner" {
-  principal_id         = azurerm_user_assigned_identity.bot.principal_id
+  principal_id         = local.bot_uami_principal_id
   scope                = azurerm_storage_account.bot.id
   role_definition_name = "Storage Blob Data Owner"
 }
 
 resource "azurerm_role_assignment" "uami_storage_queue_data_contributor" {
-  principal_id         = azurerm_user_assigned_identity.bot.principal_id
+  principal_id         = local.bot_uami_principal_id
   scope                = azurerm_storage_account.bot.id
   role_definition_name = "Storage Queue Data Contributor"
 }
 
 resource "azurerm_role_assignment" "uami_storage_table_data_contributor" {
-  principal_id         = azurerm_user_assigned_identity.bot.principal_id
+  principal_id         = local.bot_uami_principal_id
   scope                = azurerm_storage_account.bot.id
   role_definition_name = "Storage Table Data Contributor"
 }

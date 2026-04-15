@@ -23,3 +23,9 @@ variable "alert_target_alias" {
   type        = string
   default     = "ops-alerts"
 }
+
+variable "existing_bot_uami_id" {
+  description = "Full resource ID of a pre-created UAMI for the bot. Empty string creates a new one."
+  type        = string
+  default     = ""
+}

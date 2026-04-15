@@ -99,6 +99,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | [azapi_resource.byon_subnet_private_endpoints](https://registry.terraform.io/providers/azure/azapi/latest/docs/data-sources/resource) | data source |
 | [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
 | [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group) | data source |
+| [azurerm_user_assigned_identity.existing_bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/user_assigned_identity) | data source |
 
 ## Inputs
 
@@ -113,6 +114,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | <a name="input_alert_target_alias"></a> [alert\_target\_alias](#input\_alert\_target\_alias) | Channel alias for alert webhook delivery. Empty string disables alert resources. | `string` | `""` | no |
 | <a name="input_app_namespace"></a> [app\_namespace](#input\_app\_namespace) | Root .NET namespace of the deployed function app. Used in Log Analytics KQL queries to filter by logger category. | `string` | `"TeamsNotificationBot"` | no |
 | <a name="input_deploy_github_actions_from"></a> [deploy\_github\_actions\_from](#input\_deploy\_github\_actions\_from) | Map of GitHub repositories that should get federated identity credentials for CI/CD deployment.<br/>Creates a deploy UAMI with FICs when non-empty. Keys are repository names. The GitHub organization is set via var.github\_org.<br/><br/>Available settings:<br/>  pull\_request\_events: if true, allow access from pull request events.<br/>  environments: list of GitHub environments to allow access from.<br/>  branches: list of branches to allow access from.<br/>  tags: list of tags to allow access from. | <pre>map(object({<br/>    pull_request_events = optional(bool, false)<br/>    environments        = optional(list(string), [])<br/>    branches            = optional(list(string), [])<br/>    tags                = optional(list(string), [])<br/>  }))</pre> | `{}` | no |
+| <a name="input_existing_bot_uami_id"></a> [existing\_bot\_uami\_id](#input\_existing\_bot\_uami\_id) | Full resource ID of a pre-created user-assigned managed identity for the bot.<br/>When set, the module skips UAMI creation and uses the provided identity.<br/>The identity must already exist and be accessible to the deploying principal.<br/><br/>Example:<br/>  /subscriptions/.../resourceGroups/.../providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-my-bot | `string` | `""` | no |
 | <a name="input_github_org"></a> [github\_org](#input\_github\_org) | GitHub organization name for OIDC subject claims in deploy UAMI federated identity credentials. | `string` | `""` | no |
 | <a name="input_location"></a> [location](#input\_location) | Azure region for all resources. | `string` | `"norwayeast"` | no |
 | <a name="input_management_ip_rules"></a> [management\_ip\_rules](#input\_management\_ip\_rules) | IP addresses/ranges allowed for management access (terraform apply, deployment, testing). Used by function app and storage network rules. | <pre>list(object({<br/>    name        = string<br/>    description = string<br/>    cidr        = string<br/>  }))</pre> | `[]` | no |
@@ -144,5 +146,5 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_naming"></a> [naming](#module\_naming) | Azure/naming/azurerm | 0.4.2 |
+| <a name="module_naming"></a> [naming](#module\_naming) | Azure/naming/azurerm | 0.4.3 |
 <!-- END_TF_DOCS -->

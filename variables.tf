@@ -169,6 +169,27 @@ variable "deploy_github_actions_from" {
   }
 }
 
+variable "existing_bot_uami_id" {
+  description = <<-EOT
+    Full resource ID of a pre-created user-assigned managed identity for the bot.
+    When set, the module skips UAMI creation and uses the provided identity.
+    The identity must already exist and be accessible to the deploying principal.
+
+    Example:
+      /subscriptions/.../resourceGroups/.../providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-my-bot
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      var.existing_bot_uami_id == ""
+      || can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.ManagedIdentity/userAssignedIdentities/[^/]+$", var.existing_bot_uami_id))
+    )
+    error_message = "existing_bot_uami_id must be a valid Azure resource ID for a user-assigned managed identity, or empty string to create a new one."
+  }
+}
+
 variable "github_org" {
   description = "GitHub organization name for OIDC subject claims in deploy UAMI federated identity credentials."
   type        = string

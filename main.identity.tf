@@ -2,12 +2,39 @@
 # user-assigned managed identities
 #
 
-# Bot UAMI — used by function app for Azure resource access (storage)
+locals {
+  create_bot_uami = var.existing_bot_uami_id == ""
+
+  # Parse the existing UAMI resource ID by splitting the path.
+  # Format: /subscriptions/{sub}/resourceGroups/{rg}/providers/.../userAssignedIdentities/{name}
+  # Using split() instead of provider::azurerm::parse_resource_id() because tflint
+  # cannot parse the provider:: function syntax (Terraform 1.8+).
+  existing_bot_uami_parts = local.create_bot_uami ? [] : split("/", var.existing_bot_uami_id)
+  existing_bot_uami_name  = local.create_bot_uami ? "" : local.existing_bot_uami_parts[8]
+  existing_bot_uami_rg    = local.create_bot_uami ? "" : local.existing_bot_uami_parts[4]
+
+  # Unified references — all consumers use these instead of the resource/data directly.
+  bot_uami_id           = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].id : data.azurerm_user_assigned_identity.existing_bot[0].id
+  bot_uami_client_id    = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].client_id : data.azurerm_user_assigned_identity.existing_bot[0].client_id
+  bot_uami_principal_id = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].principal_id : data.azurerm_user_assigned_identity.existing_bot[0].principal_id
+}
+
+# Bot UAMI — created by the module when no existing identity is provided
 resource "azurerm_user_assigned_identity" "bot" {
+  count = local.create_bot_uami ? 1 : 0
+
   location            = var.location
   name                = module.naming.user_assigned_identity.name
   resource_group_name = var.resource_group_name
   tags                = local.common_tags
+}
+
+# Bot UAMI — read existing identity when provided by the caller
+data "azurerm_user_assigned_identity" "existing_bot" {
+  count = local.create_bot_uami ? 0 : 1
+
+  name                = local.existing_bot_uami_name
+  resource_group_name = local.existing_bot_uami_rg
 }
 
 # Deploy UAMI — created when GitHub Actions CI/CD is configured
@@ -54,9 +81,9 @@ locals {
 resource "azurerm_federated_identity_credential" "deploy_github" {
   for_each = local.github_oidc_subject_claims
 
-  audience  = ["api://AzureADTokenExchange"]
-  issuer    = "https://token.actions.githubusercontent.com"
-  name      = each.key
-  parent_id = azurerm_user_assigned_identity.deploy[0].id
-  subject   = each.value
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = "https://token.actions.githubusercontent.com"
+  name                      = each.key
+  subject                   = each.value
+  user_assigned_identity_id = azurerm_user_assigned_identity.deploy[0].id
 }

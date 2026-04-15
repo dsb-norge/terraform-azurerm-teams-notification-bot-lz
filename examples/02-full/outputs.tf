@@ -34,6 +34,16 @@ output "resource_group_name" {
   value       = module.teams_notification_bot.resource_group_name
 }
 
+output "uami_client_id" {
+  description = "The client ID of the bot's user-assigned managed identity."
+  value       = module.teams_notification_bot.uami_client_id
+}
+
+output "uami_principal_id" {
+  description = "The principal ID of the bot's user-assigned managed identity."
+  value       = module.teams_notification_bot.uami_principal_id
+}
+
 output "vnet_id" {
   description = "ID of the VNet created by the module."
   value       = module.teams_notification_bot.vnet_id

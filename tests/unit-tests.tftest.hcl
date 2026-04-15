@@ -56,6 +56,15 @@ override_resource {
   }
 }
 
+override_data {
+  target = data.azurerm_user_assigned_identity.existing_bot
+  values = {
+    id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-existing-bot"
+    client_id    = "00000000-0000-0000-0000-000000000030"
+    principal_id = "00000000-0000-0000-0000-000000000031"
+  }
+}
+
 override_resource {
   target = azurerm_user_assigned_identity.deploy
   values = {
@@ -374,7 +383,7 @@ run "resource_naming_uses_naming_module" {
   }
 
   assert {
-    condition     = azurerm_user_assigned_identity.bot.name == "uai-test-bot"
+    condition     = azurerm_user_assigned_identity.bot[0].name == "uai-test-bot"
     error_message = "UAMI name should use naming module prefix."
   }
 
@@ -1378,5 +1387,66 @@ run "deploy_uami_output_set_when_repos_configured" {
   assert {
     condition     = output.deploy_uami_client_id != null
     error_message = "deploy_uami_client_id should be non-null when deploy_github_actions_from is non-empty."
+  }
+}
+
+# --- existing_bot_uami_id (BYON identity) ---
+
+run "existing_uami_rejects_invalid_resource_id" {
+  command = plan
+
+  variables {
+    existing_bot_uami_id = "not-a-resource-id"
+  }
+
+  expect_failures = [var.existing_bot_uami_id]
+}
+
+run "existing_uami_accepts_empty" {
+  command = plan
+
+  variables {
+    existing_bot_uami_id = ""
+  }
+
+  assert {
+    condition     = length(azurerm_user_assigned_identity.bot) == 1
+    error_message = "Empty existing_bot_uami_id should create a module-managed UAMI."
+  }
+}
+
+run "existing_uami_skips_creation" {
+  command = plan
+
+  variables {
+    existing_bot_uami_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-existing-bot"
+  }
+
+  assert {
+    condition     = length(azurerm_user_assigned_identity.bot) == 0
+    error_message = "Providing existing_bot_uami_id should skip UAMI creation."
+  }
+
+  assert {
+    condition     = length(data.azurerm_user_assigned_identity.existing_bot) == 1
+    error_message = "Providing existing_bot_uami_id should read the existing UAMI."
+  }
+}
+
+run "existing_uami_outputs" {
+  command = apply
+
+  variables {
+    existing_bot_uami_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-existing-bot"
+  }
+
+  assert {
+    condition     = output.uami_client_id == "00000000-0000-0000-0000-000000000030"
+    error_message = "uami_client_id should come from the existing UAMI data source."
+  }
+
+  assert {
+    condition     = output.uami_principal_id == "00000000-0000-0000-0000-000000000031"
+    error_message = "uami_principal_id should come from the existing UAMI data source."
   }
 }

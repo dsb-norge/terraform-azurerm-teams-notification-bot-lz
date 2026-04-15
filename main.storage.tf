@@ -2,6 +2,7 @@
 # storage account with queues
 #
 
+# tflint-ignore: azurerm_resources_missing_prevent_destroy
 resource "azurerm_storage_account" "bot" {
   account_replication_type = "LRS"
   account_tier             = "Standard"

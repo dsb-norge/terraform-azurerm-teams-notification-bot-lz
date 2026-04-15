@@ -33,7 +33,7 @@ data "azurerm_client_config" "current" {}
 
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.4.2"
+  version = "0.4.3"
 
   suffix = [var.name]
 }
@@ -90,6 +90,9 @@ module "teams_notification_bot" {
   # Monitoring alerts — deliver to a channel alias
   alert_target_alias = var.alert_target_alias
 
+  # Pre-created UAMI — pass the full resource ID to skip module-managed UAMI creation
+  existing_bot_uami_id = var.existing_bot_uami_id
+
   # App namespace — must match the deployed .NET app's root namespace
   app_namespace = "TeamsNotificationBot"
 
@@ -131,5 +134,7 @@ module "teams_notification_bot" {
 | <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id) | The ID of the Log Analytics workspace. |
 | <a name="output_private_endpoint_ids"></a> [private\_endpoint\_ids](#output\_private\_endpoint\_ids) | Map of private endpoint resource IDs. |
 | <a name="output_resource_group_name"></a> [resource\_group\_name](#output\_resource\_group\_name) | The name of the resource group (passthrough from input). |
+| <a name="output_uami_client_id"></a> [uami\_client\_id](#output\_uami\_client\_id) | The client ID of the bot's user-assigned managed identity. |
+| <a name="output_uami_principal_id"></a> [uami\_principal\_id](#output\_uami\_principal\_id) | The principal ID of the bot's user-assigned managed identity. |
 | <a name="output_vnet_id"></a> [vnet\_id](#output\_vnet\_id) | ID of the VNet created by the module. |
 <!-- END_TF_DOCS -->

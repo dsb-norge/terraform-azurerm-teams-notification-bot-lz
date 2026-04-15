@@ -8,7 +8,7 @@ data "azurerm_client_config" "current" {}
 
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.4.2"
+  version = "0.4.3"
 
   suffix = [var.name]
 }
@@ -64,6 +64,9 @@ module "teams_notification_bot" {
 
   # Monitoring alerts — deliver to a channel alias
   alert_target_alias = var.alert_target_alias
+
+  # Pre-created UAMI — pass the full resource ID to skip module-managed UAMI creation
+  existing_bot_uami_id = var.existing_bot_uami_id
 
   # App namespace — must match the deployed .NET app's root namespace
   app_namespace = "TeamsNotificationBot"

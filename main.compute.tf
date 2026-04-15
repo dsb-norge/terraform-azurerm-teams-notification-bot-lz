@@ -16,6 +16,7 @@ resource "azurerm_service_plan" "bot" {
 }
 
 # Blob container used by the Flex Consumption runtime to store deployment packages.
+# tflint-ignore: azurerm_resources_missing_prevent_destroy
 resource "azurerm_storage_container" "deployments" {
   name                  = "deployments"
   container_access_type = "private"
@@ -52,7 +53,7 @@ resource "azapi_resource" "bot" {
             value = "${azurerm_storage_account.bot.primary_blob_endpoint}${azurerm_storage_container.deployments.name}"
             authentication = {
               type                           = "UserAssignedIdentity"
-              userAssignedIdentityResourceId = azurerm_user_assigned_identity.bot.id
+              userAssignedIdentityResourceId = local.bot_uami_id
             }
           }
         }
@@ -81,7 +82,7 @@ resource "azapi_resource" "bot" {
           # Uses explicit service URIs + __clientId per:
           # https://learn.microsoft.com/azure/azure-functions/functions-reference#connecting-to-host-storage-with-an-identity
           { name = "AzureWebJobsStorage__credential", value = "managedidentity" },
-          { name = "AzureWebJobsStorage__clientId", value = azurerm_user_assigned_identity.bot.client_id },
+          { name = "AzureWebJobsStorage__clientId", value = local.bot_uami_client_id },
           { name = "AzureWebJobsStorage__blobServiceUri", value = azurerm_storage_account.bot.primary_blob_endpoint },
           { name = "AzureWebJobsStorage__queueServiceUri", value = "https://${azurerm_storage_account.bot.name}.queue.core.windows.net" },
           { name = "AzureWebJobsStorage__tableServiceUri", value = "https://${azurerm_storage_account.bot.name}.table.core.windows.net" },
@@ -129,7 +130,7 @@ resource "azapi_resource" "bot" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.bot.id]
+    identity_ids = [local.bot_uami_id]
   }
 }
 

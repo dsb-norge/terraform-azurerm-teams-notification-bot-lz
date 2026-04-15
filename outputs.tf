@@ -73,12 +73,12 @@ output "subnet_private_endpoints_id" {
 
 output "uami_client_id" {
   description = "The client ID of the bot's user-assigned managed identity."
-  value       = azurerm_user_assigned_identity.bot.client_id
+  value       = local.bot_uami_client_id
 }
 
 output "uami_principal_id" {
   description = "The principal ID of the bot's user-assigned managed identity."
-  value       = azurerm_user_assigned_identity.bot.principal_id
+  value       = local.bot_uami_principal_id
 }
 
 output "vnet_id" {
