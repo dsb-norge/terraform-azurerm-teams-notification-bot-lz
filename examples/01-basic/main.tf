@@ -8,7 +8,7 @@ data "azurerm_client_config" "current" {}
 
 module "naming" {
   source  = "Azure/naming/azurerm"
-  version = "0.4.2"
+  version = "0.4.3"
 
   suffix = [var.name]
 }
