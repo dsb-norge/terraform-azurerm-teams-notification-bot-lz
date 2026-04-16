@@ -41,6 +41,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.12 |
 | <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | ~> 2.0 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 4.68 |
+| <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.9 |
 
 ## Resources
 
@@ -95,6 +96,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | [azurerm_user_assigned_identity.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) | resource |
 | [azurerm_user_assigned_identity.deploy](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) | resource |
 | [azurerm_virtual_network.bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network) | resource |
+| [time_sleep.deploy_uami_propagation](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [azapi_resource.byon_subnet_function_app](https://registry.terraform.io/providers/azure/azapi/latest/docs/data-sources/resource) | data source |
 | [azapi_resource.byon_subnet_private_endpoints](https://registry.terraform.io/providers/azure/azapi/latest/docs/data-sources/resource) | data source |
 | [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
