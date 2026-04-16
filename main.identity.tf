@@ -78,6 +78,17 @@ locals {
   ]...)
 }
 
+# Wait for MS Graph to register the deploy UAMI's service principal.
+# ARM returns success before Graph propagation completes, causing FIC
+# creation to fail with "MS Graph resource not found".
+resource "time_sleep" "deploy_uami_propagation" {
+  count = length(var.deploy_github_actions_from) > 0 ? 1 : 0
+
+  create_duration = "30s"
+
+  depends_on = [azurerm_user_assigned_identity.deploy]
+}
+
 resource "azurerm_federated_identity_credential" "deploy_github" {
   for_each = local.github_oidc_subject_claims
 
@@ -86,4 +97,6 @@ resource "azurerm_federated_identity_credential" "deploy_github" {
   name                      = each.key
   subject                   = each.value
   user_assigned_identity_id = azurerm_user_assigned_identity.deploy[0].id
+
+  depends_on = [time_sleep.deploy_uami_propagation]
 }

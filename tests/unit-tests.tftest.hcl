@@ -1,5 +1,6 @@
 mock_provider "azurerm" {}
 mock_provider "azapi" {}
+mock_provider "time" {}
 
 override_data {
   target = data.azurerm_client_config.current
