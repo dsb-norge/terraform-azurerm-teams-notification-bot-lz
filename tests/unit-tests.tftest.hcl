@@ -523,6 +523,54 @@ run "allowed_caller_rules_rejects_invalid_service_tag" {
   expect_failures = [var.allowed_caller_rules]
 }
 
+run "allowed_caller_rules_rejects_description_with_comma" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      { name = "bad", description = "Automation, Logic Apps", service_tag = "AzureCloud" }
+    ]
+  }
+
+  expect_failures = [var.allowed_caller_rules]
+}
+
+run "allowed_caller_rules_rejects_description_with_semicolon" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      { name = "bad", description = "rule one; rule two", service_tag = "AzureCloud" }
+    ]
+  }
+
+  expect_failures = [var.allowed_caller_rules]
+}
+
+run "debug_ip_rules_rejects_description_with_comma" {
+  command = plan
+
+  variables {
+    debug_ip_rules = [
+      { name = "bad", description = "office, vpn", cidr = "10.0.0.0/24" }
+    ]
+  }
+
+  expect_failures = [var.debug_ip_rules]
+}
+
+run "debug_ip_rules_rejects_description_with_semicolon" {
+  command = plan
+
+  variables {
+    debug_ip_rules = [
+      { name = "bad", description = "office; vpn", cidr = "10.0.0.0/24" }
+    ]
+  }
+
+  expect_failures = [var.debug_ip_rules]
+}
+
 # --- New variable validations ---
 
 run "location_rejects_empty" {

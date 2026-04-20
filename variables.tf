@@ -151,6 +151,11 @@ variable "allowed_caller_rules" {
   default = []
 
   validation {
+    condition     = alltrue([for rule in var.allowed_caller_rules : !can(regex("[;,]", rule.description))])
+    error_message = "Rule descriptions must not contain ';' or ',' — Azure rejects these characters in IpSecurityRestriction.Description."
+  }
+
+  validation {
     condition = alltrue([
       for rule in var.allowed_caller_rules :
       (rule.cidr != null && rule.service_tag == null) || (rule.cidr == null && rule.service_tag != null)
@@ -202,6 +207,11 @@ variable "debug_ip_rules" {
     cidr        = string
   }))
   default = []
+
+  validation {
+    condition     = alltrue([for rule in var.debug_ip_rules : !can(regex("[;,]", rule.description))])
+    error_message = "Rule descriptions must not contain ';' or ',' — Azure rejects these characters in IpSecurityRestriction.Description."
+  }
 
   validation {
     condition     = alltrue([for rule in var.debug_ip_rules : can(cidrhost(rule.cidr, 0))])

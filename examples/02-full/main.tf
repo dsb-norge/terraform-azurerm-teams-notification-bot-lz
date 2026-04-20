@@ -89,7 +89,7 @@ module "teams_notification_bot" {
   allowed_caller_rules = [
     {
       name        = "azure-cloud"
-      description = "Any Azure service (Automation, Logic Apps, etc.)"
+      description = "Any Azure service (Automation / Logic Apps / etc.)"
       service_tag = "AzureCloud"
     },
     {
