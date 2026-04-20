@@ -256,16 +256,16 @@ run "api_app_object_id_rejects_non_uuid" {
   expect_failures = [var.api_app_object_id]
 }
 
-run "management_ip_rules_rejects_invalid_cidr" {
+run "debug_ip_rules_rejects_invalid_cidr" {
   command = plan
 
   variables {
-    management_ip_rules = [
+    debug_ip_rules = [
       { name = "bad", description = "bad cidr", cidr = "not-a-cidr" }
     ]
   }
 
-  expect_failures = [var.management_ip_rules]
+  expect_failures = [var.debug_ip_rules]
 }
 
 # --- Conditional resources ---
@@ -430,19 +430,97 @@ run "name_rejects_too_long" {
   expect_failures = [var.name]
 }
 
-run "management_ip_rules_accepts_valid_cidr" {
+run "debug_ip_rules_accepts_valid_cidr" {
   command = plan
 
   variables {
-    management_ip_rules = [
+    debug_ip_rules = [
       { name = "office", description = "Office IP", cidr = "203.0.113.0/24" }
     ]
   }
 
   assert {
-    condition     = length(var.management_ip_rules) == 1
+    condition     = length(var.debug_ip_rules) == 1
     error_message = "Valid CIDR should be accepted."
   }
+}
+
+run "allowed_caller_rules_accepts_cidr" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      { name = "onprem", description = "On-prem caller", cidr = "203.0.113.0/24" }
+    ]
+  }
+
+  assert {
+    condition     = length(var.allowed_caller_rules) == 1
+    error_message = "Valid CIDR should be accepted."
+  }
+}
+
+run "allowed_caller_rules_accepts_service_tag" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      { name = "azure-cloud", description = "Azure Cloud (global)", service_tag = "AzureCloud" }
+    ]
+  }
+
+  assert {
+    condition     = length(var.allowed_caller_rules) == 1
+    error_message = "Valid service tag should be accepted."
+  }
+}
+
+run "allowed_caller_rules_rejects_both_cidr_and_tag" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      { name = "bad", description = "both set", cidr = "10.0.0.0/8", service_tag = "AzureCloud" }
+    ]
+  }
+
+  expect_failures = [var.allowed_caller_rules]
+}
+
+run "allowed_caller_rules_rejects_neither_cidr_nor_tag" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      { name = "bad", description = "neither set" }
+    ]
+  }
+
+  expect_failures = [var.allowed_caller_rules]
+}
+
+run "allowed_caller_rules_rejects_invalid_cidr" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      { name = "bad", description = "bad cidr", cidr = "not-a-cidr" }
+    ]
+  }
+
+  expect_failures = [var.allowed_caller_rules]
+}
+
+run "allowed_caller_rules_rejects_invalid_service_tag" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      { name = "bad", description = "bad tag", service_tag = "has spaces!" }
+    ]
+  }
+
+  expect_failures = [var.allowed_caller_rules]
 }
 
 # --- New variable validations ---

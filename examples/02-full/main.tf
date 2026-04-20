@@ -71,12 +71,31 @@ module "teams_notification_bot" {
   # App namespace — must match the deployed .NET app's root namespace
   app_namespace = "TeamsNotificationBot"
 
-  # Management access — IP ranges for terraform apply, deployment, testing
-  management_ip_rules = [
+  # Debug access — CIDRs for operators (main app + SCM/Kudu + storage)
+  debug_ip_rules = [
     {
       name        = "ci-runner"
-      description = "GitHub Actions runner IP"
+      description = "Operator laptop / CI runner IP"
       cidr        = "203.0.113.0/24"
+    },
+  ]
+
+  # Allowed callers to /api/v1/* — systems that push messages to Teams.
+  # Mix of service tag and CIDR rules to exercise both code paths.
+  #
+  # NOTE: App Service ipSecurityRestrictions accepts a narrower service tag set
+  # than NSG rules. Regional variants like 'AzureCloud.NorwayEast' are rejected
+  # with "invalid ServiceTag". Use the global 'AzureCloud' tag instead.
+  allowed_caller_rules = [
+    {
+      name        = "azure-cloud"
+      description = "Any Azure service (Automation, Logic Apps, etc.)"
+      service_tag = "AzureCloud"
+    },
+    {
+      name        = "onprem-monitoring"
+      description = "On-prem monitoring system egress IP"
+      cidr        = "203.0.113.100/32"
     },
   ]
 

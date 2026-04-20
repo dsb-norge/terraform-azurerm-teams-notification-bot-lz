@@ -97,6 +97,10 @@ resource "azapi_resource" "bot" {
           { name = "PoisonAlertAlias", value = var.alert_target_alias },
         ]
 
+        # Priority layout for main app inbound rules:
+        #   100-199: module-default allows (Bot Service, Teams channel, Action Group)
+        #   200-399: allowed_caller_rules (applications pushing to /api/v1/*)
+        #   400+   : debug_ip_rules (operators manually hitting /api/*)
         ipSecurityRestrictionsDefaultAction = "Deny"
         ipSecurityRestrictions = concat(
           [
@@ -113,13 +117,23 @@ resource "azapi_resource" "bot" {
             # Allow Azure Monitor Action Group webhook delivery for alert notifications
             { action = "Allow", name = "AllowAzureMonitorActionGroup", priority = 103, tag = "ServiceTag", ipAddress = "ActionGroup", description = "Azure Monitor Action Group webhook delivery" },
           ],
-          [for i, rule in var.management_ip_rules : {
-            action = "Allow", name = rule.name, priority = 200 + i, ipAddress = rule.cidr, description = rule.description
+          [for i, rule in var.allowed_caller_rules : merge(
+            {
+              action      = "Allow"
+              name        = rule.name
+              priority    = 200 + i
+              description = rule.description
+            },
+            rule.service_tag != null ? { tag = "ServiceTag", ipAddress = rule.service_tag } : { ipAddress = rule.cidr }
+          )],
+          [for i, rule in var.debug_ip_rules : {
+            action = "Allow", name = rule.name, priority = 400 + i, ipAddress = rule.cidr, description = rule.description
           }]
         )
 
+        # SCM/Kudu endpoint: debug access only. Application callers do not need Kudu.
         scmIpSecurityRestrictionsDefaultAction = "Deny"
-        scmIpSecurityRestrictions = [for i, rule in var.management_ip_rules : {
+        scmIpSecurityRestrictions = [for i, rule in var.debug_ip_rules : {
           action = "Allow", name = rule.name, priority = 100 + i, ipAddress = rule.cidr, description = rule.description
         }]
       }

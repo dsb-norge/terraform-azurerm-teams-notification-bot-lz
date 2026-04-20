@@ -40,6 +40,10 @@ Private endpoints come in two flavors: `managed` (with DNS zone groups) and `unm
 - The messaging endpoint (`/api/messages`) is excluded from EasyAuth in `bot_auth_settings` — Bot Framework sends its own JWT tokens that EasyAuth cannot validate.
 - `AzureBotService` service tag does NOT cover Teams channel delivery IPs. The module adds `52.112.0.0/14` and `52.122.0.0/15` explicitly.
 
+## App Service ipSecurityRestrictions service tags
+
+Confirmed empirically (April 2026): App Service `ipSecurityRestrictions` accepts a narrower set of service tags than NSG rules. MS docs claim "all publicly available service tags are supported" but regional variants of `AzureCloud` (e.g. `AzureCloud.NorwayEast`) are rejected by ARM with `'AzureCloud.NorwayEast' is an invalid ServiceTag!`. Known working: `AzureCloud`, `ActionGroup`, `AzureBotService`. The `allowed_caller_rules` variable does not pre-validate tags against a known list — trust ARM's error at apply time.
+
 ## Testing
 
 - **Unit tests** (`tests/unit-tests.tftest.hcl`): 57 tests using `mock_provider`. Cover variable validation, conditional resources, BYON network, BYON identity, naming, outputs.

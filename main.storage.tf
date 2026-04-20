@@ -30,5 +30,5 @@ resource "azurerm_storage_account_network_rules" "bot" {
   default_action     = "Deny"
   storage_account_id = azurerm_storage_account.bot.id
   bypass             = ["AzureServices"]
-  ip_rules           = local.allowed_management_ips
+  ip_rules           = local.allowed_debug_ips
 }
