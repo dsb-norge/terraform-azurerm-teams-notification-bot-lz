@@ -107,6 +107,74 @@ variable "alert_target_alias" {
   }
 }
 
+variable "allowed_caller_rules" {
+  description = <<-EOT
+    Inbound allow-list for systems calling the function app's API endpoints
+    (/api/v1/*). Applied ONLY to the function app's public ipSecurityRestrictions
+    — not to SCM and not to the storage account. Each rule takes either a CIDR
+    or a service tag (mutually exclusive).
+
+    Use this for:
+      - Known Azure services calling the API (service_tag = "AzureCloud")
+      - On-prem systems with stable egress IPs (cidr = "x.x.x.x/y")
+      - Specific Azure VNets via their NAT gateway IPs
+
+    Authorization is enforced separately by EasyAuth + the 'Notifications.Send'
+    app role — allow-listing here only controls network reachability.
+
+    Service tag constraint:
+      App Service ipSecurityRestrictions accepts a narrower set of service tags
+      than NSG rules. Microsoft documentation says "all publicly available
+      service tags are supported" but in practice regional variants (e.g.
+      'AzureCloud.NorwayEast') are rejected with "invalid ServiceTag".
+
+      Known-working tags: AzureCloud, ActionGroup, AzureBotService.
+      Other tags listed as supported but unverified here: ApplicationInsightsAvailability,
+      AzureFrontDoor.Backend, AzureTrafficManager.
+
+      This variable does NOT validate the tag value against a known list —
+      MS may add/remove supported tags. An invalid tag will surface at apply
+      time with a clear ARM error.
+
+    Example:
+      allowed_caller_rules = [
+        { name = "azure-cloud", description = "Any Azure service", service_tag = "AzureCloud" },
+        { name = "onprem-monitoring", description = "On-prem monitoring egress", cidr = "203.0.113.10/32" },
+      ]
+  EOT
+  type = list(object({
+    name        = string
+    description = string
+    cidr        = optional(string)
+    service_tag = optional(string)
+  }))
+  default = []
+
+  validation {
+    condition = alltrue([
+      for rule in var.allowed_caller_rules :
+      (rule.cidr != null && rule.service_tag == null) || (rule.cidr == null && rule.service_tag != null)
+    ])
+    error_message = "Each allowed_caller_rules entry must set exactly one of 'cidr' or 'service_tag' (not both, not neither)."
+  }
+
+  validation {
+    condition = alltrue([
+      for rule in var.allowed_caller_rules :
+      rule.cidr == null || can(cidrhost(rule.cidr, 0))
+    ])
+    error_message = "When 'cidr' is set on an allowed_caller_rules entry, it must be a valid CIDR (e.g. '10.0.0.0/24' or '1.2.3.4/32')."
+  }
+
+  validation {
+    condition = alltrue([
+      for rule in var.allowed_caller_rules :
+      rule.service_tag == null || can(regex("^[A-Za-z][A-Za-z0-9.]*$", rule.service_tag))
+    ])
+    error_message = "When 'service_tag' is set, it must be a valid Azure service tag name (letters/digits/dots, e.g. 'AzureCloud', 'AzureCloud.NorwayEast')."
+  }
+}
+
 variable "app_namespace" {
   description = "Root .NET namespace of the deployed function app. Used in Log Analytics KQL queries to filter by logger category."
   type        = string
@@ -115,6 +183,29 @@ variable "app_namespace" {
   validation {
     condition     = length(var.app_namespace) > 0
     error_message = "The 'app_namespace' cannot be empty string."
+  }
+}
+
+variable "debug_ip_rules" {
+  description = <<-EOT
+    CIDR ranges allowed inbound for human operators and CI runners. Applied to:
+      - the function app's public endpoint (manual /api/* smoke-testing)
+      - the SCM/Kudu endpoint (live log streaming, portal debugging)
+      - the storage account network rules (terraform apply uploading deployment packages)
+
+    This is NOT for application callers pushing messages to the API — use
+    allowed_caller_rules for that. Typical use: the DSB VPN CIDR for operators.
+  EOT
+  type = list(object({
+    name        = string
+    description = string
+    cidr        = string
+  }))
+  default = []
+
+  validation {
+    condition     = alltrue([for rule in var.debug_ip_rules : can(cidrhost(rule.cidr, 0))])
+    error_message = "Each debug_ip_rules entry must have a valid CIDR (e.g. '10.0.0.0/24' or '1.2.3.4/32')."
   }
 }
 
@@ -209,97 +300,6 @@ variable "location" {
   validation {
     condition     = length(var.location) > 0
     error_message = "The 'location' cannot be empty string."
-  }
-}
-
-variable "debug_ip_rules" {
-  description = <<-EOT
-    CIDR ranges allowed inbound for human operators and CI runners. Applied to:
-      - the function app's public endpoint (manual /api/* smoke-testing)
-      - the SCM/Kudu endpoint (live log streaming, portal debugging)
-      - the storage account network rules (terraform apply uploading deployment packages)
-
-    This is NOT for application callers pushing messages to the API — use
-    allowed_caller_rules for that. Typical use: the DSB VPN CIDR for operators.
-  EOT
-  type = list(object({
-    name        = string
-    description = string
-    cidr        = string
-  }))
-  default = []
-
-  validation {
-    condition     = alltrue([for rule in var.debug_ip_rules : can(cidrhost(rule.cidr, 0))])
-    error_message = "Each debug_ip_rules entry must have a valid CIDR (e.g. '10.0.0.0/24' or '1.2.3.4/32')."
-  }
-}
-
-variable "allowed_caller_rules" {
-  description = <<-EOT
-    Inbound allow-list for systems calling the function app's API endpoints
-    (/api/v1/*). Applied ONLY to the function app's public ipSecurityRestrictions
-    — not to SCM and not to the storage account. Each rule takes either a CIDR
-    or a service tag (mutually exclusive).
-
-    Use this for:
-      - Known Azure services calling the API (service_tag = "AzureCloud")
-      - On-prem systems with stable egress IPs (cidr = "x.x.x.x/y")
-      - Specific Azure VNets via their NAT gateway IPs
-
-    Authorization is enforced separately by EasyAuth + the 'Notifications.Send'
-    app role — allow-listing here only controls network reachability.
-
-    Service tag constraint:
-      App Service ipSecurityRestrictions accepts a narrower set of service tags
-      than NSG rules. Microsoft documentation says "all publicly available
-      service tags are supported" but in practice regional variants (e.g.
-      'AzureCloud.NorwayEast') are rejected with "invalid ServiceTag".
-
-      Known-working tags: AzureCloud, ActionGroup, AzureBotService.
-      Other tags listed as supported but unverified here: ApplicationInsightsAvailability,
-      AzureFrontDoor.Backend, AzureTrafficManager.
-
-      This variable does NOT validate the tag value against a known list —
-      MS may add/remove supported tags. An invalid tag will surface at apply
-      time with a clear ARM error.
-
-    Example:
-      allowed_caller_rules = [
-        { name = "azure-cloud", description = "Any Azure service", service_tag = "AzureCloud" },
-        { name = "onprem-monitoring", description = "On-prem monitoring egress", cidr = "203.0.113.10/32" },
-      ]
-  EOT
-  type = list(object({
-    name        = string
-    description = string
-    cidr        = optional(string)
-    service_tag = optional(string)
-  }))
-  default = []
-
-  validation {
-    condition = alltrue([
-      for rule in var.allowed_caller_rules :
-      (rule.cidr != null && rule.service_tag == null) || (rule.cidr == null && rule.service_tag != null)
-    ])
-    error_message = "Each allowed_caller_rules entry must set exactly one of 'cidr' or 'service_tag' (not both, not neither)."
-  }
-
-  validation {
-    condition = alltrue([
-      for rule in var.allowed_caller_rules :
-      rule.cidr == null || can(cidrhost(rule.cidr, 0))
-    ])
-    error_message = "When 'cidr' is set on an allowed_caller_rules entry, it must be a valid CIDR (e.g. '10.0.0.0/24' or '1.2.3.4/32')."
-  }
-
-  validation {
-    condition = alltrue([
-      for rule in var.allowed_caller_rules :
-      rule.service_tag == null || can(regex("^[A-Za-z][A-Za-z0-9.]*$", rule.service_tag))
-    ])
-    error_message = "When 'service_tag' is set, it must be a valid Azure service tag name (letters/digits/dots, e.g. 'AzureCloud', 'AzureCloud.NorwayEast')."
   }
 }
 
