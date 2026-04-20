@@ -1181,6 +1181,61 @@ run "network_byon_with_caller_dns" {
     condition     = length(azurerm_private_dns_zone.zones) == 0
     error_message = "BYON with caller DNS should not create module DNS zones."
   }
+
+  # Default DNS zone group name should be "default"
+  assert {
+    condition     = azurerm_private_endpoint.managed["storage_blob"].private_dns_zone_group[0].name == "default"
+    error_message = "Default private_dns_zone_group_name should be 'default'."
+  }
+}
+
+run "network_byon_with_caller_dns_custom_group_name" {
+  command = plan
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_function_app[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = [{ name = "flex", properties = { serviceName = "Microsoft.App/environments", actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"] } }]
+          addressPrefix = "10.100.0.0/24"
+        }
+      }
+    }
+  }
+
+  override_data {
+    target = data.azapi_resource.byon_subnet_private_endpoints[0]
+    values = {
+      output = {
+        properties = {
+          delegations   = []
+          addressPrefix = "10.100.1.0/28"
+        }
+      }
+    }
+  }
+
+  variables {
+    network_config = {
+      create_network                       = false
+      existing_subnet_function_app_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/func"
+      existing_subnet_private_endpoints_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/pe"
+      manage_private_dns_zone_groups       = true
+      private_dns_zone_group_name          = "deployedByPolicy"
+      private_dns_zone_resource_ids = {
+        blob  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-dns/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net"
+        queue = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-dns/providers/Microsoft.Network/privateDnsZones/privatelink.queue.core.windows.net"
+        table = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-dns/providers/Microsoft.Network/privateDnsZones/privatelink.table.core.windows.net"
+      }
+    }
+  }
+
+  # Custom group name used on all 3 PEs — enables coexistence with CAF ALZ policy
+  assert {
+    condition     = alltrue([for k, pe in azurerm_private_endpoint.managed : pe.private_dns_zone_group[0].name == "deployedByPolicy"])
+    error_message = "Custom private_dns_zone_group_name should be applied to all managed PEs."
+  }
 }
 
 # --- network_config output tests (apply with mocks) ---

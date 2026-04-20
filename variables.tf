@@ -240,6 +240,11 @@ variable "network_config" {
       Module skips VNet/subnet/DNS zone creation entirely.
       Set manage_private_dns_zone_groups = false if central infrastructure
       (e.g. Azure Policy) handles private DNS registration.
+
+    private_dns_zone_group_name controls the name used for the zone group
+    created on each private endpoint. Projects that coexist with CAF ALZ
+    Azure Policy should set this to "deployedByPolicy" so the policy's
+    group-creation step finds a matching group and skips.
   EOT
   type = object({
     create_network = optional(bool, true)
@@ -256,6 +261,7 @@ variable "network_config" {
     # PE DNS behavior (both modes):
     manage_private_dns_zone_groups = optional(bool, true)
     private_dns_zone_resource_ids  = optional(map(string), {})
+    private_dns_zone_group_name    = optional(string, "default")
   })
   default = {}
 

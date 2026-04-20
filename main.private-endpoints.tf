@@ -72,7 +72,7 @@ resource "azurerm_private_endpoint" "managed" {
     for_each = lookup(local.private_dns_zone_ids, each.value.subresource, "") != "" ? ["this"] : []
 
     content {
-      name                 = "default"
+      name                 = var.network_config.private_dns_zone_group_name
       private_dns_zone_ids = [local.private_dns_zone_ids[each.value.subresource]]
     }
   }
