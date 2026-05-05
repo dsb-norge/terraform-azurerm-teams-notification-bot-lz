@@ -58,11 +58,14 @@ override_resource {
 }
 
 override_data {
-  target = data.azurerm_user_assigned_identity.existing_bot
+  target = data.azapi_resource.existing_bot
   values = {
-    id           = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-existing-bot"
-    client_id    = "00000000-0000-0000-0000-000000000030"
-    principal_id = "00000000-0000-0000-0000-000000000031"
+    output = {
+      properties = {
+        clientId    = "00000000-0000-0000-0000-000000000030"
+        principalId = "00000000-0000-0000-0000-000000000031"
+      }
+    }
   }
 }
 
@@ -1610,8 +1613,8 @@ run "existing_uami_skips_creation" {
   }
 
   assert {
-    condition     = length(data.azurerm_user_assigned_identity.existing_bot) == 1
-    error_message = "Providing existing_bot_uami_id should read the existing UAMI."
+    condition     = length(data.azapi_resource.existing_bot) == 1
+    error_message = "Providing existing_bot_uami_id should read the existing UAMI via azapi."
   }
 }
 

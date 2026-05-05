@@ -5,18 +5,12 @@
 locals {
   create_bot_uami = var.existing_bot_uami_id == ""
 
-  # Parse the existing UAMI resource ID by splitting the path.
-  # Format: /subscriptions/{sub}/resourceGroups/{rg}/providers/.../userAssignedIdentities/{name}
-  # Using split() instead of provider::azurerm::parse_resource_id() because tflint
-  # cannot parse the provider:: function syntax (Terraform 1.8+).
-  existing_bot_uami_parts = local.create_bot_uami ? [] : split("/", var.existing_bot_uami_id)
-  existing_bot_uami_name  = local.create_bot_uami ? "" : local.existing_bot_uami_parts[8]
-  existing_bot_uami_rg    = local.create_bot_uami ? "" : local.existing_bot_uami_parts[4]
-
   # Unified references — all consumers use these instead of the resource/data directly.
-  bot_uami_id           = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].id : data.azurerm_user_assigned_identity.existing_bot[0].id
-  bot_uami_client_id    = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].client_id : data.azurerm_user_assigned_identity.existing_bot[0].client_id
-  bot_uami_principal_id = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].principal_id : data.azurerm_user_assigned_identity.existing_bot[0].principal_id
+  # When BYO is in use, we read the existing UAMI via azapi (cross-subscription friendly,
+  # since enterprise patterns often place identities in a separate subscription).
+  bot_uami_id           = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].id : var.existing_bot_uami_id
+  bot_uami_client_id    = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].client_id : data.azapi_resource.existing_bot[0].output.properties.clientId
+  bot_uami_principal_id = local.create_bot_uami ? azurerm_user_assigned_identity.bot[0].principal_id : data.azapi_resource.existing_bot[0].output.properties.principalId
 }
 
 # Bot UAMI — created by the module when no existing identity is provided
@@ -29,12 +23,18 @@ resource "azurerm_user_assigned_identity" "bot" {
   tags                = local.common_tags
 }
 
-# Bot UAMI — read existing identity when provided by the caller
-data "azurerm_user_assigned_identity" "existing_bot" {
+# Bot UAMI — read existing identity when provided by the caller.
+# Uses azapi (not azurerm_user_assigned_identity data source) because the latter
+# is restricted to the provider's configured subscription. Enterprise identity
+# teams often place UAMIs in a dedicated identity subscription, separate from
+# where the bot infrastructure is deployed. azapi reads by full resource ID and
+# works cross-subscription.
+data "azapi_resource" "existing_bot" {
   count = local.create_bot_uami ? 0 : 1
 
-  name                = local.existing_bot_uami_name
-  resource_group_name = local.existing_bot_uami_rg
+  type                   = "Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31"
+  resource_id            = var.existing_bot_uami_id
+  response_export_values = ["properties.clientId", "properties.principalId"]
 }
 
 # Deploy UAMI — created when GitHub Actions CI/CD is configured
