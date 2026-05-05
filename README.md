@@ -99,9 +99,9 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | [time_sleep.deploy_uami_propagation](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [azapi_resource.byon_subnet_function_app](https://registry.terraform.io/providers/azure/azapi/latest/docs/data-sources/resource) | data source |
 | [azapi_resource.byon_subnet_private_endpoints](https://registry.terraform.io/providers/azure/azapi/latest/docs/data-sources/resource) | data source |
+| [azapi_resource.existing_bot](https://registry.terraform.io/providers/azure/azapi/latest/docs/data-sources/resource) | data source |
 | [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
 | [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group) | data source |
-| [azurerm_user_assigned_identity.existing_bot](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/user_assigned_identity) | data source |
 
 ## Inputs
 
