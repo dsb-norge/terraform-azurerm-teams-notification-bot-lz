@@ -21,7 +21,15 @@ terraform apply -var="name=my-bot" -var="bot_app_id=..." -var="api_app_id=..." -
 provider "azurerm" {
   storage_use_azuread = true
 
-  features {}
+  features {
+    # Allow `terraform destroy` to clean up the resource group even if Azure
+    # has not finished evicting child resources. The Flex Consumption function
+    # app delete returns success from ARM before the platform fully removes
+    # the site, racing the RG delete. Safe for examples — these are ephemeral.
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 
 data "azurerm_client_config" "current" {}
