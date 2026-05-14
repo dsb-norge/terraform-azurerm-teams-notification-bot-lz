@@ -71,8 +71,18 @@ locals {
       { for branch in repo_cfg.branches :
         "branch-${branch}-in-${local.gh_org}__${repo_name}" => "repo:${local.gh_org}/${repo_name}:ref:refs/heads/${branch}"
       },
+      # FIC name must match Azure's rules (letters, numbers, hyphens). Tag patterns
+      # may contain '*' for wildcard matching — replace it with 'wildcard' in the
+      # name. The subject keeps the raw tag pattern.
+      #
+      # NOTE: A standard FIC matches the subject EXACTLY. A subject containing
+      # '*' (e.g. 'refs/tags/v*') will not match any real tag push without an
+      # additional claimsMatchingExpression / flexible FIC. For wildcard tag
+      # support, either list explicit tags here or switch to the flexible FIC
+      # resource. See:
+      # https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-claims-claim-matching-rules
       { for tag in repo_cfg.tags :
-        "tag-${tag}-in-${local.gh_org}__${repo_name}" => "repo:${local.gh_org}/${repo_name}:ref:refs/tags/${tag}"
+        "tag-${replace(tag, "*", "wildcard")}-in-${local.gh_org}__${repo_name}" => "repo:${local.gh_org}/${repo_name}:ref:refs/tags/${tag}"
       },
     )
   ]...)

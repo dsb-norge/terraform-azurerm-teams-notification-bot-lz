@@ -2,6 +2,28 @@
 # app service plan and function app
 #
 
+# Flex Consumption requires the Microsoft.App resource provider to be
+# registered in the subscription — the platform uses it to create the
+# ServiceAssociationLink (SAL) when integrating the function app with
+# the VNet subnet (delegated to 'Microsoft.App/environments').
+#
+# Without this, the function app creation fails with a misleading
+# AuthorizationFailed error from the SAL setup. The azurerm provider's
+# default registration list (`legacy`) does not include Microsoft.App.
+#
+# Note: the deploying principal needs subscription-level register/action
+# permission. Destroying this resource unregisters the provider in the
+# subscription, which would break any other workload depending on
+# Microsoft.App (e.g. Container Apps). Set prevent_destroy to avoid
+# accidental teardown.
+resource "azurerm_resource_provider_registration" "microsoft_app" {
+  name = "Microsoft.App"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "azurerm_service_plan" "bot" {
   location            = var.location
   name                = module.naming.app_service_plan.name
@@ -146,6 +168,10 @@ resource "azapi_resource" "bot" {
     type         = "UserAssigned"
     identity_ids = [local.bot_uami_id]
   }
+
+  # Microsoft.App must be registered before the platform sets up the
+  # ServiceAssociationLink for VNet integration. See the resource above.
+  depends_on = [azurerm_resource_provider_registration.microsoft_app]
 }
 
 # Auth settings as a child resource. The ARM API requires authsettingsV2 as
