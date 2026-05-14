@@ -222,13 +222,33 @@ variable "debug_ip_rules" {
 variable "deploy_github_actions_from" {
   description = <<-EOF
     Map of GitHub repositories that should get federated identity credentials for CI/CD deployment.
-    Creates a deploy UAMI with FICs when non-empty. Keys are repository names. The GitHub organization is set via var.github_org.
+    Creates a deploy UAMI with FICs when non-empty. Keys are repository names.
+    The GitHub organization is set via var.github_org.
 
     Available settings:
-      pull_request_events: if true, allow access from pull request events.
-      environments: list of GitHub environments to allow access from.
-      branches: list of branches to allow access from.
-      tags: list of tags to allow access from.
+      environments        : list of GitHub environments to allow access from.
+      branches            : list of branches to allow access from.
+      tags                : list of tags to allow access from.
+      pull_request_events : if true, allow access from pull request events.
+
+    RECOMMENDATION — prefer 'environments' over 'branches' or 'tags':
+      Standard FICs match the OIDC token's 'subject' claim EXACTLY (no wildcards).
+      Tag/branch patterns like 'v*' or 'main' that depend on wildcard matching
+      do NOT work without a flexible FIC + claimsMatchingExpression (preview, not
+      supported by azurerm provider yet).
+
+      Use a GitHub environment FIC and let GitHub enforce the deployment rules:
+        1. Configure 'environments = ["dev"]' (or "production", etc.)
+        2. In the app repo: Settings > Environments > <env>
+           - Add required reviewers (optional)
+           - Add deployment branch/tag policy (e.g. only tags 'app-v*')
+        3. Workflow declares 'environment: <env>' in its deploy job
+
+      This gives standard FIC reliability + GitHub-enforced wildcard restrictions.
+
+      The 'tags' field has a built-in name-sanitization for wildcards (* → 'wildcard')
+      to avoid Azure's FIC name validation rejecting the resource, but a wildcard
+      subject still won't actually match any tag push without claimsMatchingExpression.
   EOF
   type = map(object({
     pull_request_events = optional(bool, false)

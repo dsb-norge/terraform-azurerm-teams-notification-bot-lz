@@ -11,17 +11,21 @@
 # AuthorizationFailed error from the SAL setup. The azurerm provider's
 # default registration list (`legacy`) does not include Microsoft.App.
 #
-# Note: the deploying principal needs subscription-level register/action
-# permission. Destroying this resource unregisters the provider in the
-# subscription, which would break any other workload depending on
-# Microsoft.App (e.g. Container Apps). Set prevent_destroy to avoid
-# accidental teardown.
-resource "azurerm_resource_provider_registration" "microsoft_app" {
-  name = "Microsoft.App"
-
-  lifecycle {
-    prevent_destroy = true
-  }
+# Implementation notes:
+# - Uses azapi_resource_action (not azurerm_resource_provider_registration)
+#   because the latter is NOT idempotent — it fails if the RP is already
+#   registered. azapi_resource_action POSTs the register action which Azure
+#   treats as a no-op when already registered.
+# - Action does not appear in state and runs on every apply — harmless,
+#   and means destroying the module does NOT unregister the provider
+#   (good — protects other workloads like Container Apps sharing the sub).
+# - The deploying principal needs subscription-level register/action
+#   permission on Microsoft.Resources/providers.
+resource "azapi_resource_action" "register_microsoft_app" {
+  type        = "Microsoft.Resources/providers@2021-04-01"
+  resource_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.App"
+  action      = "register"
+  method      = "POST"
 }
 
 resource "azurerm_service_plan" "bot" {
@@ -171,7 +175,7 @@ resource "azapi_resource" "bot" {
 
   # Microsoft.App must be registered before the platform sets up the
   # ServiceAssociationLink for VNet integration. See the resource above.
-  depends_on = [azurerm_resource_provider_registration.microsoft_app]
+  depends_on = [azapi_resource_action.register_microsoft_app]
 }
 
 # Auth settings as a child resource. The ARM API requires authsettingsV2 as
