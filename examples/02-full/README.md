@@ -104,8 +104,8 @@ module "teams_notification_bot" {
   # App namespace — must match the deployed .NET app's root namespace
   app_namespace = "TeamsNotificationBot"
 
-  # Debug access — CIDRs for operators (main app + SCM/Kudu + storage)
-  debug_ip_rules = [
+  # Management access — CIDRs for operators and CI deploy runners (main app + SCM/Kudu + storage)
+  management_ip_rules = [
     {
       name        = "ci-runner"
       description = "Operator laptop / CI runner IP"

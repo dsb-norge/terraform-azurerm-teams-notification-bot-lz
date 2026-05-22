@@ -191,32 +191,23 @@ variable "app_namespace" {
   }
 }
 
-variable "debug_ip_rules" {
+variable "data_scanner_private_link_access" {
   description = <<-EOT
-    CIDR ranges allowed inbound for human operators and CI runners. Applied to:
-      - the function app's public endpoint (manual /api/* smoke-testing)
-      - the SCM/Kudu endpoint (live log streaming, portal debugging)
-      - the storage account network rules (terraform apply uploading deployment packages)
+    Whether to declare the Microsoft Defender for Storage data scanner
+    (Microsoft.Security/datascanners/storageDataScanner) as a
+    private_link_access entry on the storage account's network rules.
 
-    This is NOT for application callers pushing messages to the API — use
-    allowed_caller_rules for that. Typical use: the DSB VPN CIDR for operators.
+    Default true: declare the entry. Use in subscriptions where Defender
+    for Storage is enabled — Azure adds this entry via its reconciliation
+    pass anyway, and declaring it explicitly converges terraform with that
+    state so plans stay clean.
+
+    Set false in subscriptions without Defender for Storage. If Defender
+    is enabled later in such a subscription, drift will appear; flip this
+    flag back to true to converge.
   EOT
-  type = list(object({
-    name        = string
-    description = string
-    cidr        = string
-  }))
-  default = []
-
-  validation {
-    condition     = alltrue([for rule in var.debug_ip_rules : !can(regex("[;,]", rule.description))])
-    error_message = "Rule descriptions must not contain ';' or ',' — Azure rejects these characters in IpSecurityRestriction.Description."
-  }
-
-  validation {
-    condition     = alltrue([for rule in var.debug_ip_rules : can(cidrhost(rule.cidr, 0))])
-    error_message = "Each debug_ip_rules entry must have a valid CIDR (e.g. '10.0.0.0/24' or '1.2.3.4/32')."
-  }
+  type        = bool
+  default     = true
 }
 
 variable "deploy_github_actions_from" {
@@ -330,6 +321,38 @@ variable "location" {
   validation {
     condition     = length(var.location) > 0
     error_message = "The 'location' cannot be empty string."
+  }
+}
+
+variable "management_ip_rules" {
+  description = <<-EOT
+    CIDR ranges allowed inbound on the management/admin paths — operators and
+    CI deploy runners. Applied to:
+      - the function app's public endpoint (manual /api/* smoke-testing)
+      - the SCM/Kudu endpoint (deployments via `func azure functionapp publish`,
+        live log streaming, portal debugging)
+      - the storage account network rules (terraform apply uploading
+        deployment packages)
+
+    This is NOT for application callers pushing messages to the API — use
+    allowed_caller_rules for that. Typical use: operator VPN CIDRs and the
+    stable egress IPs of GitHub Actions runners that deploy the function app.
+  EOT
+  type = list(object({
+    name        = string
+    description = string
+    cidr        = string
+  }))
+  default = []
+
+  validation {
+    condition     = alltrue([for rule in var.management_ip_rules : !can(regex("[;,]", rule.description))])
+    error_message = "Rule descriptions must not contain ';' or ',' — Azure rejects these characters in IpSecurityRestriction.Description."
+  }
+
+  validation {
+    condition     = alltrue([for rule in var.management_ip_rules : can(cidrhost(rule.cidr, 0))])
+    error_message = "Each management_ip_rules entry must have a valid CIDR (e.g. '10.0.0.0/24' or '1.2.3.4/32')."
   }
 }
 

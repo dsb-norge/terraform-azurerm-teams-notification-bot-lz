@@ -259,16 +259,16 @@ run "api_app_object_id_rejects_non_uuid" {
   expect_failures = [var.api_app_object_id]
 }
 
-run "debug_ip_rules_rejects_invalid_cidr" {
+run "management_ip_rules_rejects_invalid_cidr" {
   command = plan
 
   variables {
-    debug_ip_rules = [
+    management_ip_rules = [
       { name = "bad", description = "bad cidr", cidr = "not-a-cidr" }
     ]
   }
 
-  expect_failures = [var.debug_ip_rules]
+  expect_failures = [var.management_ip_rules]
 }
 
 # --- Conditional resources ---
@@ -433,17 +433,17 @@ run "name_rejects_too_long" {
   expect_failures = [var.name]
 }
 
-run "debug_ip_rules_accepts_valid_cidr" {
+run "management_ip_rules_accepts_valid_cidr" {
   command = plan
 
   variables {
-    debug_ip_rules = [
+    management_ip_rules = [
       { name = "office", description = "Office IP", cidr = "203.0.113.0/24" }
     ]
   }
 
   assert {
-    condition     = length(var.debug_ip_rules) == 1
+    condition     = length(var.management_ip_rules) == 1
     error_message = "Valid CIDR should be accepted."
   }
 }
@@ -550,28 +550,28 @@ run "allowed_caller_rules_rejects_description_with_semicolon" {
   expect_failures = [var.allowed_caller_rules]
 }
 
-run "debug_ip_rules_rejects_description_with_comma" {
+run "management_ip_rules_rejects_description_with_comma" {
   command = plan
 
   variables {
-    debug_ip_rules = [
+    management_ip_rules = [
       { name = "bad", description = "office, vpn", cidr = "10.0.0.0/24" }
     ]
   }
 
-  expect_failures = [var.debug_ip_rules]
+  expect_failures = [var.management_ip_rules]
 }
 
-run "debug_ip_rules_rejects_description_with_semicolon" {
+run "management_ip_rules_rejects_description_with_semicolon" {
   command = plan
 
   variables {
-    debug_ip_rules = [
+    management_ip_rules = [
       { name = "bad", description = "office; vpn", cidr = "10.0.0.0/24" }
     ]
   }
 
-  expect_failures = [var.debug_ip_rules]
+  expect_failures = [var.management_ip_rules]
 }
 
 # --- New variable validations ---

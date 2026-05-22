@@ -126,7 +126,7 @@ resource "azapi_resource" "bot" {
         # Priority layout for main app inbound rules:
         #   100-199: module-default allows (Bot Service, Teams channel, Action Group)
         #   200-399: allowed_caller_rules (applications pushing to /api/v1/*)
-        #   400+   : debug_ip_rules (operators manually hitting /api/*)
+        #   400+   : management_ip_rules (operators + CI deploy runners)
         ipSecurityRestrictionsDefaultAction = "Deny"
         ipSecurityRestrictions = concat(
           [
@@ -152,14 +152,17 @@ resource "azapi_resource" "bot" {
             },
             rule.service_tag != null ? { tag = "ServiceTag", ipAddress = rule.service_tag } : { ipAddress = rule.cidr }
           )],
-          [for i, rule in var.debug_ip_rules : {
+          [for i, rule in var.management_ip_rules : {
             action = "Allow", name = rule.name, priority = 400 + i, ipAddress = rule.cidr, description = rule.description
           }]
         )
 
-        # SCM/Kudu endpoint: debug access only. Application callers do not need Kudu.
+        # SCM/Kudu endpoint: operators + CI deploy runners only. Application
+        # callers do not use Kudu. `func azure functionapp publish` uploads
+        # via this endpoint, so deploy runner egress IPs need to be in
+        # management_ip_rules for automated deploys to work.
         scmIpSecurityRestrictionsDefaultAction = "Deny"
-        scmIpSecurityRestrictions = [for i, rule in var.debug_ip_rules : {
+        scmIpSecurityRestrictions = [for i, rule in var.management_ip_rules : {
           action = "Allow", name = rule.name, priority = 100 + i, ipAddress = rule.cidr, description = rule.description
         }]
       }

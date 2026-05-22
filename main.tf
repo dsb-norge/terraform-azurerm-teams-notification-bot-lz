@@ -12,7 +12,7 @@ locals {
   tenant_id = data.azurerm_client_config.current.tenant_id
 
   # Derived: storage ip_rules require single IPs without /32 suffix
-  allowed_debug_ips = [for rule in var.debug_ip_rules : trimsuffix(rule.cidr, "/32")]
+  allowed_management_ips = [for rule in var.management_ip_rules : trimsuffix(rule.cidr, "/32")]
 
   common_tags = merge(
     {
