@@ -37,7 +37,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.12 |
 | <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | ~> 2.0 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 4.68 |
@@ -46,7 +46,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [azapi_resource.bot](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource) | resource |
 | [azapi_resource_action.register_microsoft_app](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/resource_action) | resource |
 | [azapi_update_resource.bot_auth_settings](https://registry.terraform.io/providers/azure/azapi/latest/docs/resources/update_resource) | resource |
@@ -108,7 +108,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_api_app_id"></a> [api\_app\_id](#input\_api\_app\_id) | Client ID of the Entra ID app registration for API authentication (EasyAuth). Must be a valid UUID. | `string` | n/a | yes |
 | <a name="input_api_app_object_id"></a> [api\_app\_object\_id](#input\_api\_app\_object\_id) | Object ID of the Entra ID app registration for API authentication. Used by Azure Monitor action group AAD auth. The deploying identity must be an owner of this app registration when alert\_target\_alias is set. | `string` | n/a | yes |
 | <a name="input_app_requirements"></a> [app\_requirements](#input\_app\_requirements) | App requirements declared by the function app (from app-requirements.json).<br/>Specifies infrastructure dependencies: queues, routes, runtime version, auth<br/>settings, bot service config, and required app settings.<br/><br/>Pass the requirements from the app release:<br/>  app\_requirements = jsondecode(file("app-requirements.json"))<br/><br/>Extra keys in the JSON (e.g. teams\_app\_configuration) are silently discarded<br/>by the object() type — only infrastructure-relevant fields are consumed. | <pre>object({<br/>    infrastructure_requirements_unique_hash = optional(string, "")<br/>    function_app_runtime_version            = optional(string, "10.0")<br/>    storage_account_required_queues = optional(list(string), [<br/>      "botoperations", "botoperations-poison",<br/>      "notifications", "notifications-poison"<br/>    ])<br/>    well_known_routes = optional(object({<br/>      azure_alert_webhook_receiver_endpoint = optional(string, "/api/v1/alert/{alias}")<br/>    }), {})<br/>    function_app_required_app_settings = optional(list(string), [<br/>      "ApiAppId", "APPLICATIONINSIGHTS_CONNECTION_STRING",<br/>      "AzureWebJobsStorage__blobServiceUri", "AzureWebJobsStorage__clientId",<br/>      "AzureWebJobsStorage__credential", "AzureWebJobsStorage__queueServiceUri",<br/>      "AzureWebJobsStorage__tableServiceUri", "BotAppId", "PoisonAlertAlias",<br/>      "StorageAccountName", "TenantId"<br/>    ])<br/>    bot_auth_settings = optional(object({<br/>      platform_enabled       = optional(bool, true)<br/>      require_authentication = optional(bool, false)<br/>      unauthenticated_action = optional(string, "AllowAnonymous")<br/>      identity_provider      = optional(string, "azureActiveDirectory")<br/>      required_role          = optional(string, "Notifications.Send")<br/>    }), {})<br/>    bot_service = optional(object({<br/>      type               = optional(string, "SingleTenant")<br/>      messaging_endpoint = optional(string, "/api/messages")<br/>    }), {})<br/>  })</pre> | n/a | yes |
@@ -130,7 +130,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_application_insights_connection_string"></a> [application\_insights\_connection\_string](#output\_application\_insights\_connection\_string) | The connection string of the Application Insights instance. |
 | <a name="output_application_insights_instrumentation_key"></a> [application\_insights\_instrumentation\_key](#output\_application\_insights\_instrumentation\_key) | The instrumentation key of the Application Insights instance. |
 | <a name="output_bot_service_name"></a> [bot\_service\_name](#output\_bot\_service\_name) | The name of the Bot Service. |
