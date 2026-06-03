@@ -18,7 +18,7 @@ resource "azurerm_user_assigned_identity" "bot" {
   count = local.create_bot_uami ? 1 : 0
 
   location            = var.location
-  name                = module.naming.user_assigned_identity.name
+  name                = local.names.user_assigned_identity
   resource_group_name = var.resource_group_name
   tags                = local.common_tags
 }
@@ -42,7 +42,7 @@ resource "azurerm_user_assigned_identity" "deploy" {
   count = length(var.deploy_github_actions_from) > 0 ? 1 : 0
 
   location            = var.location
-  name                = "${module.naming.user_assigned_identity.name}-deploy"
+  name                = "${local.names.user_assigned_identity}-deploy"
   resource_group_name = var.resource_group_name
   tags                = local.common_tags
 

@@ -30,7 +30,7 @@ resource "azapi_resource_action" "register_microsoft_app" {
 
 resource "azurerm_service_plan" "bot" {
   location            = var.location
-  name                = module.naming.app_service_plan.name
+  name                = local.names.app_service_plan
   os_type             = "Linux"
   resource_group_name = var.resource_group_name
   sku_name            = "FC1" # Flex Consumption (the only FC tier) — serverless, per-execution billing with always-ready instance support and VNet integration. Instance size is controlled by instanceMemoryMB, not the SKU.
@@ -59,7 +59,7 @@ resource "azurerm_storage_container" "deployments" {
 #          https://github.com/hashicorp/terraform-provider-azurerm/issues/30732
 resource "azapi_resource" "bot" {
   type          = "Microsoft.Web/sites@2025-03-01"
-  name          = module.naming.function_app.name
+  name          = local.names.function_app
   location      = var.location
   parent_id     = data.azurerm_resource_group.this.id
   tags          = local.common_tags

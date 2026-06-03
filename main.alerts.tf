@@ -6,7 +6,7 @@
 resource "azurerm_monitor_action_group" "bot_alerts" {
   count = var.alert_target_alias != "" ? 1 : 0
 
-  name                = module.naming.monitor_action_group.name
+  name                = local.names.monitor_action_group
   resource_group_name = var.resource_group_name
   short_name          = "BotAlerts"
   tags                = local.common_tags

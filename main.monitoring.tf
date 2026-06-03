@@ -4,7 +4,7 @@
 
 resource "azurerm_log_analytics_workspace" "bot" {
   location            = var.location
-  name                = module.naming.log_analytics_workspace.name
+  name                = local.names.log_analytics_workspace
   resource_group_name = var.resource_group_name
   retention_in_days   = 30
   sku                 = "PerGB2018"
@@ -260,7 +260,7 @@ resource "azurerm_log_analytics_query_pack_query" "function_executions" {
 resource "azurerm_application_insights" "bot" {
   application_type    = "web"
   location            = var.location
-  name                = module.naming.application_insights.name
+  name                = local.names.application_insights
   resource_group_name = var.resource_group_name
   tags                = local.common_tags
   workspace_id        = azurerm_log_analytics_workspace.bot.id

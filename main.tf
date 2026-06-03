@@ -2,13 +2,26 @@
 # entry point for the landing zone module
 #
 
-module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.4.3"
-  suffix  = [var.name]
-}
-
 locals {
+  # Inlined name composition — replaces module "naming" / Azure/naming/azurerm
+  # v0.4.3. Every type below uses AVM's <slug>-<suffix> pattern with no
+  # randomness (.name, not .name_unique) and dashes=true (no dash stripping),
+  # so substr("<slug>-${var.name}", 0, <max>) is byte-identical to AVM .name.
+  # Slugs and max_length values are frozen from AVM's resourceDefinition
+  # catalog at v0.4.3; substr on every type preserves AVM's per-type truncation
+  # so output stays identical to AVM for any valid var.name.
+  names = {
+    app_service_plan        = substr("plan-${var.name}", 0, 40)
+    function_app            = substr("func-${var.name}", 0, 60)
+    application_insights    = substr("appi-${var.name}", 0, 260)
+    log_analytics_workspace = substr("log-${var.name}", 0, 63)
+    monitor_action_group    = substr("mag-${var.name}", 0, 260)
+    user_assigned_identity  = substr("uai-${var.name}", 0, 128)
+    virtual_network         = substr("vnet-${var.name}", 0, 64)
+    subnet                  = substr("snet-${var.name}", 0, 80)
+    private_endpoint        = substr("pe-${var.name}", 0, 80)
+  }
+
   tenant_id = data.azurerm_client_config.current.tenant_id
 
   # Derived: storage ip_rules require single IPs without /32 suffix

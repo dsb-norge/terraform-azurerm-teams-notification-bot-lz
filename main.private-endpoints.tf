@@ -56,7 +56,7 @@ resource "azurerm_private_endpoint" "managed" {
   }
 
   location            = var.location
-  name                = "${module.naming.private_endpoint.name}-${replace(each.key, "_", "-")}"
+  name                = "${local.names.private_endpoint}-${replace(each.key, "_", "-")}"
   resource_group_name = var.resource_group_name
   subnet_id           = local.subnet_private_endpoints_id
   tags                = local.common_tags
@@ -88,7 +88,7 @@ resource "azurerm_private_endpoint" "unmanaged" {
   }
 
   location            = var.location
-  name                = "${module.naming.private_endpoint.name}-${replace(each.key, "_", "-")}"
+  name                = "${local.names.private_endpoint}-${replace(each.key, "_", "-")}"
   resource_group_name = var.resource_group_name
   subnet_id           = local.subnet_private_endpoints_id
   tags                = local.common_tags

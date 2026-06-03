@@ -60,7 +60,7 @@ resource "azurerm_virtual_network" "bot" {
 
   address_space       = var.network_config.vnet_address_space
   location            = var.location
-  name                = module.naming.virtual_network.name
+  name                = local.names.virtual_network
   resource_group_name = var.resource_group_name
   tags                = local.common_tags
 }
@@ -72,7 +72,7 @@ resource "azurerm_subnet" "function_app" {
   count = local.create_network ? 1 : 0
 
   address_prefixes     = [var.network_config.subnet_function_app_prefix]
-  name                 = "${module.naming.subnet.name}-func"
+  name                 = "${local.names.subnet}-func"
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.bot[0].name
 
@@ -95,7 +95,7 @@ resource "azurerm_subnet" "private_endpoints" {
   count = local.create_network ? 1 : 0
 
   address_prefixes     = [var.network_config.subnet_private_endpoints_prefix]
-  name                 = "${module.naming.subnet.name}-pe"
+  name                 = "${local.names.subnet}-pe"
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.bot[0].name
 
