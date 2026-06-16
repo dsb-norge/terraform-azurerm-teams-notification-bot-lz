@@ -40,6 +40,17 @@ output "log_analytics_workspace_id" {
   value       = local.log_analytics_workspace_id
 }
 
+output "private_endpoint_ids" {
+  description = "Map of private endpoint resource IDs."
+  value = {
+    for k, pe in(
+      var.network_config.manage_private_dns_zone_groups
+      ? azurerm_private_endpoint.managed
+      : azurerm_private_endpoint.unmanaged
+    ) : k => pe.id
+  }
+}
+
 output "required_outbound_fqdns" {
   description = <<-DESCRIPTION
     Set of HTTPS (TCP/443) destination FQDNs the function app needs to reach
@@ -102,17 +113,6 @@ output "required_outbound_fqdns" {
       "dc.services.visualstudio.com",
       "*.livediagnostics.monitor.azure.com",
     ] : []
-  }
-}
-
-output "private_endpoint_ids" {
-  description = "Map of private endpoint resource IDs."
-  value = {
-    for k, pe in(
-      var.network_config.manage_private_dns_zone_groups
-      ? azurerm_private_endpoint.managed
-      : azurerm_private_endpoint.unmanaged
-    ) : k => pe.id
   }
 }
 
