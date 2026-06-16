@@ -1,3 +1,15 @@
+output "application_insights_connection_string" {
+  description = "Null because observability is disabled in this example."
+  value       = module.teams_notification_bot.application_insights_connection_string
+  sensitive   = true
+}
+
+output "application_insights_instrumentation_key" {
+  description = "Null because observability is disabled in this example."
+  value       = module.teams_notification_bot.application_insights_instrumentation_key
+  sensitive   = true
+}
+
 output "bot_service_name" {
   description = "The name of the Bot Service."
   value       = module.teams_notification_bot.bot_service_name
@@ -11,21 +23,6 @@ output "function_app_hostname" {
 output "function_app_name" {
   description = "The name of the Function App."
   value       = module.teams_notification_bot.function_app_name
-}
-
-# All observability outputs should be null when enable_observability = false.
-# The integration test asserts on these values.
-
-output "application_insights_connection_string" {
-  description = "Null because observability is disabled in this example."
-  value       = module.teams_notification_bot.application_insights_connection_string
-  sensitive   = true
-}
-
-output "application_insights_instrumentation_key" {
-  description = "Null because observability is disabled in this example."
-  value       = module.teams_notification_bot.application_insights_instrumentation_key
-  sensitive   = true
 }
 
 output "log_analytics_workspace_id" {
