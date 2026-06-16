@@ -40,6 +40,71 @@ output "log_analytics_workspace_id" {
   value       = local.log_analytics_workspace_id
 }
 
+output "required_outbound_fqdns" {
+  description = <<-DESCRIPTION
+    Set of HTTPS (TCP/443) destination FQDNs the function app needs to reach
+    outbound for the bot to work. Grouped by purpose so BYON consumers can
+    shape their firewall / NSG / NAT-gateway rules accordingly.
+
+    Why this matters: the function app runs on Flex Consumption with
+    `vnetRouteAllEnabled = true` (per the Microsoft docs, this is implicit
+    for Flex), so EVERY outbound packet — including public-Internet
+    destinations — leaves through the integrated subnet's NIC. NSGs on
+    that subnet apply unconditionally; if egress is locked down,
+    Bot Framework auth, Teams replies, and App Insights ingestion all
+    fail silently and the bot accepts inbound /api/messages but never
+    replies.
+
+    Categories:
+    - `entra_id_auth`: Microsoft Entra ID / legacy AAD token endpoints.
+      Always required.
+    - `bot_framework`: Bot Framework Connector auth + channel endpoints.
+      Always required.
+    - `teams_reply`: Service Management Bot Adapter via Azure Traffic
+      Manager. Required when Teams is a target channel — the Connector
+      hands `https://smba.trafficmanager.net/<region>/...` to the bot as
+      `Activity.serviceUrl`. Not covered by `*.botframework.com`. Source:
+      Bot Framework REST API reference, Base URI section.
+    - `application_insights_ingestion`: telemetry endpoints, only emitted
+      when `enable_observability = true`. Empty list otherwise.
+
+    For consumers who can use Azure Firewall service tags instead of FQDNs:
+    `AzureActiveDirectory` covers most of `entra_id_auth`,
+    `AzureMonitor` covers some Monitor endpoints but NOT App Insights
+    ingestion. `AzureBotService` is the INBOUND service tag (Connector ->
+    bot endpoint); it does NOT cover the bot's outbound destinations.
+    Use FQDNs for the outbound rules to be safe.
+
+    Refs:
+    - https://learn.microsoft.com/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0#which-specific-urls-do-i-need-to-allowlist-in-my-corporate-firewall-to-access-bot-framework-services
+    - https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-api-reference?view=azure-bot-service-4.0#base-uri
+    - https://learn.microsoft.com/azure/azure-monitor/fundamentals/azure-monitor-network-access#outbound-traffic
+    - https://learn.microsoft.com/azure/azure-functions/functions-networking-options (Flex Consumption — NSGs always apply to outbound)
+    DESCRIPTION
+  value = {
+    entra_id_auth = [
+      "login.microsoftonline.com",
+      "login.windows.net",
+      "login.windows.com",
+      "sts.windows.net",
+    ]
+    bot_framework = [
+      "login.botframework.com",
+      "*.botframework.com",
+      "state.botframework.com",
+    ]
+    teams_reply = [
+      "smba.trafficmanager.net",
+    ]
+    application_insights_ingestion = var.enable_observability ? [
+      "*.in.applicationinsights.azure.com",
+      "dc.applicationinsights.azure.com",
+      "dc.services.visualstudio.com",
+      "*.livediagnostics.monitor.azure.com",
+    ] : []
+  }
+}
+
 output "private_endpoint_ids" {
   description = "Map of private endpoint resource IDs."
   value = {

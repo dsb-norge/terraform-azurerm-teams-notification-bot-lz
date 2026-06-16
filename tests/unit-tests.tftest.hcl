@@ -471,6 +471,56 @@ run "create_law_flag_default_creates_own_workspace" {
   }
 }
 
+run "required_outbound_fqdns_output_default_includes_app_insights" {
+  command = plan
+
+  # Defaults: enable_observability = true → App Insights ingestion FQDNs included.
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.bot_framework, "login.botframework.com")
+    error_message = "bot_framework FQDNs should include login.botframework.com."
+  }
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.teams_reply, "smba.trafficmanager.net")
+    error_message = "teams_reply FQDNs should include smba.trafficmanager.net (the Activity.serviceUrl base for Teams replies)."
+  }
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.entra_id_auth, "login.microsoftonline.com")
+    error_message = "entra_id_auth FQDNs should include login.microsoftonline.com."
+  }
+
+  assert {
+    condition     = length(output.required_outbound_fqdns.application_insights_ingestion) > 0
+    error_message = "application_insights_ingestion FQDNs should be non-empty when enable_observability = true (default)."
+  }
+}
+
+run "required_outbound_fqdns_output_observability_off_drops_app_insights" {
+  command = plan
+
+  variables {
+    enable_observability = false
+  }
+
+  assert {
+    condition     = length(output.required_outbound_fqdns.application_insights_ingestion) == 0
+    error_message = "application_insights_ingestion should be empty when enable_observability = false."
+  }
+
+  # Bot framework + Entra ID FQDNs are unchanged — the bot still needs them.
+  assert {
+    condition     = contains(output.required_outbound_fqdns.bot_framework, "login.botframework.com")
+    error_message = "bot_framework FQDNs should remain populated even when observability is disabled."
+  }
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.teams_reply, "smba.trafficmanager.net")
+    error_message = "teams_reply FQDNs should remain populated even when observability is disabled."
+  }
+}
+
 run "log_analytics_workspace_id_rejects_bad_format" {
   command = plan
 

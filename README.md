@@ -14,9 +14,9 @@ This module deploys the following resources into an existing resource group:
 | **Networking** | VNet + 2 subnets | VNet integration for Function App, private endpoints |
 | **Private Endpoints** | 3 PEs (blob, queue, table) | Private connectivity to storage |
 | **Identity** | User-Assigned Managed Identity | Passwordless access to storage and bot auth |
-| **Monitoring** | Log Analytics + App Insights + Query Pack | Observability with 15 saved diagnostic KQL queries |
+| **Monitoring** | Log Analytics + App Insights + Query Pack (optional) | Observability stack with 14 saved diagnostic KQL queries. Toggle with `enable_observability`; BYO an existing LAW with `create_log_analytics_workspace = false` + `log_analytics_workspace_id` |
 | **Alerts** | Metric alerts + Action Group (optional) | Poison queue, queue backlog, and heartbeat monitoring |
-| **Diagnostics** | Diagnostic settings (4) | Routes Function App and Storage logs to LAW |
+| **Diagnostics** | Diagnostic settings (7) | Routes Function App, Storage account + 3 sub-services, App Service Plan, and Bot Service logs/metrics to LAW |
 | **CI/CD** | Deploy UAMI + FICs (optional) | GitHub Actions OIDC deployment identity |
 
 ## Prerequisites
@@ -25,6 +25,34 @@ This module deploys the following resources into an existing resource group:
 - Two Entra ID app registrations:
   - **Bot app** (`bot_app_id`) — for Bot Framework SingleTenant auth
   - **API app** (`api_app_id`, `api_app_object_id`) — for EasyAuth on the Function App and Action Group AAD auth
+
+## Required outbound network access (important for BYON consumers)
+
+The function app runs on Flex Consumption with VNet integration. Per the [Microsoft docs](https://learn.microsoft.com/azure/azure-functions/functions-networking-options), all outbound traffic on Flex Consumption routes through the integrated subnet — including public-Internet destinations. NSGs on that subnet apply unconditionally.
+
+When `network_config.create_network = false` (BYON), the module does not own the subnet's NSG or the surrounding firewall/UDRs — the caller does. The function app needs HTTPS (TCP/443) reachability to the following destinations or the bot will silently fail (accepts inbound `/api/messages`, never replies):
+
+| Purpose | FQDNs | When |
+|---|---|---|
+| Entra ID auth | `login.microsoftonline.com`, `login.windows.net`, `login.windows.com`, `sts.windows.net` | Always |
+| Bot Framework auth + channels | `login.botframework.com`, `*.botframework.com`, `state.botframework.com` | Always |
+| Teams reply path | `smba.trafficmanager.net` | When Teams is a target channel — the Connector hands this URL to the bot as `Activity.serviceUrl`. Not covered by `*.botframework.com`. |
+| App Insights telemetry | `*.in.applicationinsights.azure.com`, `dc.applicationinsights.azure.com`, `dc.services.visualstudio.com`, `*.livediagnostics.monitor.azure.com` | When `enable_observability = true` |
+
+The same list is exposed programmatically via the module's `required_outbound_fqdns` output, so a BYON consumer can wire it into their NSG / firewall policy without restating the FQDNs in two places.
+
+Service-tag equivalents (for Azure Firewall configs that prefer service tags over FQDNs):
+
+- `AzureActiveDirectory` covers most of `entra_id_auth`.
+- `AzureMonitor` covers some Monitor endpoints but NOT App Insights ingestion; FQDNs are still needed for telemetry.
+- `AzureBotService` is the INBOUND service tag (Connector → bot endpoint); it does NOT cover any of the bot's outbound destinations.
+
+Refs:
+
+- [Bot Framework Security FAQ — required allow-list URLs](https://learn.microsoft.com/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0#which-specific-urls-do-i-need-to-allowlist-in-my-corporate-firewall-to-access-bot-framework-services). Note: this page is incomplete on the Teams reply path; `smba.trafficmanager.net` is documented in the REST API reference, not here.
+- [Bot Framework REST API reference — Base URI](https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-api-reference?view=azure-bot-service-4.0#base-uri) — canonical source for `smba.trafficmanager.net` as the Teams reply target.
+- [Azure Monitor endpoint access](https://learn.microsoft.com/azure/azure-monitor/fundamentals/azure-monitor-network-access#outbound-traffic) — App Insights ingestion FQDNs.
+- [Functions Flex Consumption networking](https://learn.microsoft.com/azure/azure-functions/functions-networking-options) — confirms NSGs always apply to outbound on Flex.
 
 ## Usage
 
