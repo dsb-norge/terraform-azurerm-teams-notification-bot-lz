@@ -103,25 +103,32 @@ resource "azapi_resource" "bot" {
         remoteDebuggingEnabled = false
         vnetRouteAllEnabled    = true
 
-        appSettings = [
-          # Identity-based connection for AzureWebJobsStorage (queue/blob/table triggers and host storage).
-          # Uses explicit service URIs + __clientId per:
-          # https://learn.microsoft.com/azure/azure-functions/functions-reference#connecting-to-host-storage-with-an-identity
-          { name = "AzureWebJobsStorage__credential", value = "managedidentity" },
-          { name = "AzureWebJobsStorage__clientId", value = local.bot_uami_client_id },
-          { name = "AzureWebJobsStorage__blobServiceUri", value = azurerm_storage_account.bot.primary_blob_endpoint },
-          { name = "AzureWebJobsStorage__queueServiceUri", value = "https://${azurerm_storage_account.bot.name}.queue.core.windows.net" },
-          { name = "AzureWebJobsStorage__tableServiceUri", value = "https://${azurerm_storage_account.bot.name}.table.core.windows.net" },
-          { name = "StorageAccountName", value = azurerm_storage_account.bot.name },
-          { name = "APPLICATIONINSIGHTS_CONNECTION_STRING", value = azurerm_application_insights.bot.connection_string },
-          # M365 Agents SDK identity — env vars override zero-GUID placeholders in appsettings.json.
-          # Program.cs maps BotAppId/TenantId/AzureWebJobsStorage__clientId to nested SDK config paths.
-          # No client secret needed — UAMI authenticates as the bot app registration via federated trust.
-          { name = "BotAppId", value = var.bot_app_id },
-          { name = "TenantId", value = local.tenant_id },
-          { name = "ApiAppId", value = var.api_app_id },
-          { name = "PoisonAlertAlias", value = var.alert_target_alias },
-        ]
+        # APPLICATIONINSIGHTS_CONNECTION_STRING is only set when observability is
+        # enabled; the AI resource doesn't exist otherwise. When unset the SDK
+        # initializes in no-op mode and the function app runs without telemetry.
+        appSettings = concat(
+          [
+            # Identity-based connection for AzureWebJobsStorage (queue/blob/table triggers and host storage).
+            # Uses explicit service URIs + __clientId per:
+            # https://learn.microsoft.com/azure/azure-functions/functions-reference#connecting-to-host-storage-with-an-identity
+            { name = "AzureWebJobsStorage__credential", value = "managedidentity" },
+            { name = "AzureWebJobsStorage__clientId", value = local.bot_uami_client_id },
+            { name = "AzureWebJobsStorage__blobServiceUri", value = azurerm_storage_account.bot.primary_blob_endpoint },
+            { name = "AzureWebJobsStorage__queueServiceUri", value = "https://${azurerm_storage_account.bot.name}.queue.core.windows.net" },
+            { name = "AzureWebJobsStorage__tableServiceUri", value = "https://${azurerm_storage_account.bot.name}.table.core.windows.net" },
+            { name = "StorageAccountName", value = azurerm_storage_account.bot.name },
+            # M365 Agents SDK identity — env vars override zero-GUID placeholders in appsettings.json.
+            # Program.cs maps BotAppId/TenantId/AzureWebJobsStorage__clientId to nested SDK config paths.
+            # No client secret needed — UAMI authenticates as the bot app registration via federated trust.
+            { name = "BotAppId", value = var.bot_app_id },
+            { name = "TenantId", value = local.tenant_id },
+            { name = "ApiAppId", value = var.api_app_id },
+            { name = "PoisonAlertAlias", value = var.alert_target_alias },
+          ],
+          var.enable_observability ? [
+            { name = "APPLICATIONINSIGHTS_CONNECTION_STRING", value = azurerm_application_insights.bot[0].connection_string },
+          ] : [],
+        )
 
         # Priority layout for main app inbound rules:
         #   100-199: module-default allows (Bot Service, Teams channel, Action Group)

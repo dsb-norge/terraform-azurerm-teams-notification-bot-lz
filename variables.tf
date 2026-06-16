@@ -107,6 +107,47 @@ variable "alert_target_alias" {
   }
 }
 
+variable "enable_observability" {
+  description = <<-DESCRIPTION
+    Toggle for the observability stack: Log Analytics workspace (or BYO via
+    `log_analytics_workspace_id`), Application Insights, the saved-query pack,
+    diagnostic settings on every loggable resource the module creates, and the
+    metric alerts (which additionally require `alert_target_alias`).
+
+    Default `true` matches the original always-on behavior. Set `false` only
+    when telemetry is intentionally not wanted — the function app runs
+    without it (`APPLICATIONINSIGHTS_CONNECTION_STRING` is not set, the SDK
+    falls back to a no-op).
+    DESCRIPTION
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
+variable "log_analytics_workspace_id" {
+  description = <<-DESCRIPTION
+    Bring-your-own Log Analytics workspace. When set to a workspace resource ID,
+    the module uses that workspace for App Insights and all diagnostic settings
+    instead of creating its own. When `null`, the module creates a workspace in
+    `var.resource_group_name`.
+
+    Ignored when `enable_observability = false`.
+
+    Format:
+
+    ```
+    /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>
+    ```
+    DESCRIPTION
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.log_analytics_workspace_id == null || can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.OperationalInsights/workspaces/[^/]+$", var.log_analytics_workspace_id))
+    error_message = "log_analytics_workspace_id must be a valid Log Analytics Workspace resource ID (`/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>`)."
+  }
+}
+
 variable "allowed_caller_rules" {
   description = <<-EOT
     Inbound allow-list for systems calling the function app's API endpoints

@@ -4,7 +4,7 @@
 #
 
 resource "azurerm_monitor_action_group" "bot_alerts" {
-  count = var.alert_target_alias != "" ? 1 : 0
+  count = var.enable_observability && var.alert_target_alias != "" ? 1 : 0
 
   name                = local.names.monitor_action_group
   resource_group_name = var.resource_group_name
@@ -25,7 +25,7 @@ resource "azurerm_monitor_action_group" "bot_alerts" {
 }
 
 resource "azurerm_monitor_metric_alert" "poison_queue" {
-  count = var.alert_target_alias != "" ? 1 : 0
+  count = var.enable_observability && var.alert_target_alias != "" ? 1 : 0
 
   name                = "alert-poison-queue-messages"
   resource_group_name = var.resource_group_name
@@ -57,7 +57,7 @@ resource "azurerm_monitor_metric_alert" "poison_queue" {
 # Normal state is near 0 — sustained count above 50 indicates processor failure.
 # QueueMessageCount requires minimum PT1H window size.
 resource "azurerm_monitor_metric_alert" "queue_backlog" {
-  count = var.alert_target_alias != "" ? 1 : 0
+  count = var.enable_observability && var.alert_target_alias != "" ? 1 : 0
 
   name                = "alert-queue-backlog"
   resource_group_name = var.resource_group_name
@@ -83,7 +83,7 @@ resource "azurerm_monitor_metric_alert" "queue_backlog" {
 }
 
 resource "azurerm_monitor_metric_alert" "storage_heartbeat" {
-  count = var.alert_target_alias != "" ? 1 : 0
+  count = var.enable_observability && var.alert_target_alias != "" ? 1 : 0
 
   name                = "alert-storage-heartbeat-test"
   resource_group_name = var.resource_group_name

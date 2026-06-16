@@ -1,12 +1,12 @@
 output "application_insights_connection_string" {
-  description = "The connection string of the Application Insights instance."
-  value       = azurerm_application_insights.bot.connection_string
+  description = "The connection string of the Application Insights instance. Null when `enable_observability = false`."
+  value       = var.enable_observability ? azurerm_application_insights.bot[0].connection_string : null
   sensitive   = true
 }
 
 output "application_insights_instrumentation_key" {
-  description = "The instrumentation key of the Application Insights instance."
-  value       = azurerm_application_insights.bot.instrumentation_key
+  description = "The instrumentation key of the Application Insights instance. Null when `enable_observability = false`."
+  value       = var.enable_observability ? azurerm_application_insights.bot[0].instrumentation_key : null
   sensitive   = true
 }
 
@@ -36,8 +36,8 @@ output "infrastructure_requirements_unique_hash" {
 }
 
 output "log_analytics_workspace_id" {
-  description = "The ID of the Log Analytics workspace."
-  value       = azurerm_log_analytics_workspace.bot.id
+  description = "The ID of the Log Analytics workspace used by the module — either the one created here or the BYO workspace passed via `var.log_analytics_workspace_id`. Null when `enable_observability = false`."
+  value       = local.log_analytics_workspace_id
 }
 
 output "private_endpoint_ids" {
