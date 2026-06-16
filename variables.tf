@@ -191,6 +191,25 @@ variable "app_namespace" {
   }
 }
 
+variable "create_log_analytics_workspace" {
+  description = <<-DESCRIPTION
+    Whether the module should create its own Log Analytics workspace. Set to
+    `false` when passing an existing workspace via `log_analytics_workspace_id`.
+
+    This is a separate variable (instead of inferring from
+    `log_analytics_workspace_id == null`) because Terraform needs the count of
+    the LAW resource to be known at plan time. When the BYO workspace ID is an
+    expression depending on another resource being created in the same
+    configuration (typical in integration tests), inferring from the id alone
+    leaves the count undetermined at plan time and the apply fails.
+
+    Ignored when `enable_observability = false`.
+    DESCRIPTION
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
 variable "data_scanner_private_link_access" {
   description = <<-EOT
     Whether to declare the Microsoft Defender for Storage data scanner

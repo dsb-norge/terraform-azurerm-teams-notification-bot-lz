@@ -4,7 +4,7 @@ Deploys the bot landing zone configured to send all telemetry to an externally-o
 
 This is the typical setup when a central platform team owns a shared workspace for cross-workload correlation (security signals, cost rollups, etc.) and individual workloads route their diag settings to it.
 
-What this changes vs. the default (`enable_observability = true`, `log_analytics_workspace_id = null`):
+What this changes vs. the default (`enable_observability = true`, `create_log_analytics_workspace = true`):
 
 | Resource | Default | BYO LAW |
 |---|---|---|
@@ -13,6 +13,15 @@ What this changes vs. the default (`enable_observability = true`, `log_analytics
 | Diagnostic settings | Routed to module's LAW | Routed to BYO LAW |
 | Saved-query pack | Created under `var.resource_group_name` | Same — query packs are per-RG, decoupled from the LAW location |
 | Action group / metric alerts | Same | Same |
+
+To switch to BYO LAW, set:
+
+```hcl
+create_log_analytics_workspace = false
+log_analytics_workspace_id     = "<your workspace resource id>"
+```
+
+The flag is separate from the id because Terraform needs the LAW resource count to be known at plan time. If we inferred "BYO" from `log_analytics_workspace_id != null`, that breaks when the BYO id depends on another resource being created in the same configuration (as it does in this example, where the shared LAW is created alongside the module call).
 
 If you want the module to skip the observability stack entirely (no LAW, no AI, no diag settings), see [`05-observability-disabled`](../05-observability-disabled/) instead.
 

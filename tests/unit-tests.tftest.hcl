@@ -427,18 +427,20 @@ run "observability_enabled_by_default" {
   }
 }
 
-# BYO LAW — when log_analytics_workspace_id is set, the module skips creating
-# its own LAW but still creates App Insights + diag settings pointed at the BYO id.
+# BYO LAW — when create_log_analytics_workspace = false + log_analytics_workspace_id
+# is set, the module skips creating its own LAW but still creates App Insights +
+# diag settings pointed at the BYO id.
 run "byo_law_skips_workspace_creation" {
   command = plan
 
   variables {
-    log_analytics_workspace_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-shared/providers/Microsoft.OperationalInsights/workspaces/log-shared"
+    create_log_analytics_workspace = false
+    log_analytics_workspace_id     = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-shared/providers/Microsoft.OperationalInsights/workspaces/log-shared"
   }
 
   assert {
     condition     = length(azurerm_log_analytics_workspace.bot) == 0
-    error_message = "Module should not create its own LAW when log_analytics_workspace_id is provided."
+    error_message = "Module should not create its own LAW when create_log_analytics_workspace = false."
   }
 
   assert {
@@ -449,6 +451,23 @@ run "byo_law_skips_workspace_creation" {
   assert {
     condition     = length(azurerm_monitor_diagnostic_setting.bot_service) == 1
     error_message = "Diag settings should still be created when BYO LAW is provided."
+  }
+}
+
+# Default behavior: create_log_analytics_workspace = true (default) → module
+# creates the LAW even when a log_analytics_workspace_id value is technically
+# also passed (the flag wins). This is the safe default for callers who flip
+# only the flag without passing an id, or pass an id without flipping the flag.
+run "create_law_flag_default_creates_own_workspace" {
+  command = plan
+
+  variables {
+    # No flags set; should still create the LAW under default behavior.
+  }
+
+  assert {
+    condition     = length(azurerm_log_analytics_workspace.bot) == 1
+    error_message = "Module should create its own LAW when create_log_analytics_workspace defaults to true."
   }
 }
 

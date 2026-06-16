@@ -2,17 +2,18 @@
 # monitoring - log analytics workspace and application insights
 #
 
-# enable_observability is the master switch; log_analytics_workspace_id lets the
-# caller bring their own LAW (BYO) instead of letting the module create one.
-# The local below collapses the three states (off / on+own / on+BYO) into one
-# value that every observability resource consumes — keeps the rest of the file
-# readable.
+# enable_observability is the master switch; create_log_analytics_workspace
+# decides whether the module creates its own LAW or uses one passed via
+# log_analytics_workspace_id (BYO). The "should create" decision is its own
+# bool input (not inferred from `log_analytics_workspace_id == null`) so
+# count is plan-time-known even when the BYO id depends on resources created
+# in the same configuration.
 locals {
-  create_log_analytics_workspace = var.enable_observability && var.log_analytics_workspace_id == null
+  create_log_analytics_workspace = var.enable_observability && var.create_log_analytics_workspace
   log_analytics_workspace_id = (
     !var.enable_observability ? null :
-    var.log_analytics_workspace_id != null ? var.log_analytics_workspace_id :
-    azurerm_log_analytics_workspace.bot[0].id
+    var.create_log_analytics_workspace ? azurerm_log_analytics_workspace.bot[0].id :
+    var.log_analytics_workspace_id
   )
 }
 

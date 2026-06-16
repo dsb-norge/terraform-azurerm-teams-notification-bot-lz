@@ -85,8 +85,15 @@ module "teams_notification_bot" {
   api_app_id        = var.api_app_id
   api_app_object_id = var.api_app_object_id
 
-  app_requirements           = {}
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.shared.id
+  app_requirements = {}
+
+  # Tell the module to skip creating its own LAW, then point it at ours.
+  # The flag (instead of inferring from log_analytics_workspace_id != null)
+  # is required so the module's LAW resource count is known at plan time —
+  # the workspace id below is apply-time-known here, which would otherwise
+  # block plan.
+  create_log_analytics_workspace = false
+  log_analytics_workspace_id     = azurerm_log_analytics_workspace.shared.id
 
   depends_on = [time_sleep.rbac_propagation]
 }

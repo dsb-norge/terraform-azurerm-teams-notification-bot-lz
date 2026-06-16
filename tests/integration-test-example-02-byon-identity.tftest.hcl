@@ -26,7 +26,7 @@ run "setup_identity" {
   }
 
   variables {
-    name = "itbot05"
+    name = "itbot02b"
   }
 }
 
@@ -39,7 +39,7 @@ run "apply" {
   }
 
   variables {
-    name                 = "itbot05"
+    name                 = "itbot02b"
     bot_app_id           = run.setup.bot_app_id
     api_app_id           = run.setup.api_app_id
     api_app_object_id    = run.setup.api_app_object_id
@@ -49,13 +49,13 @@ run "apply" {
 
   # Core outputs
   assert {
-    condition     = output.function_app_name == "func-itbot05"
-    error_message = "Function app name should be 'func-itbot05'."
+    condition     = output.function_app_name == "func-itbot02b"
+    error_message = "Function app name should be 'func-itbot02b'."
   }
 
   assert {
-    condition     = output.bot_service_name == "bot-itbot05"
-    error_message = "Bot service name should be 'bot-itbot05'."
+    condition     = output.bot_service_name == "bot-itbot02b"
+    error_message = "Bot service name should be 'bot-itbot02b'."
   }
 
   # UAMI outputs should come from the pre-created identity
