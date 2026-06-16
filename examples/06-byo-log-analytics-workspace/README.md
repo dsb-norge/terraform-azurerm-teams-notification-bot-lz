@@ -94,11 +94,12 @@ resource "time_sleep" "rbac_propagation" {
 # here we create one alongside the example so the integration test is
 # self-contained.
 resource "azurerm_log_analytics_workspace" "shared" {
-  name                = "log-${var.name}-shared"
   location            = azurerm_resource_group.this.location
+  name                = "log-${var.name}-shared"
   resource_group_name = azurerm_resource_group.this.name
   retention_in_days   = 30
   sku                 = "PerGB2018"
+  tags                = {}
 }
 
 # Demonstrates BYO LAW. The module skips creating its own workspace and
