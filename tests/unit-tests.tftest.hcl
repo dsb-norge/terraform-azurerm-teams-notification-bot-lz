@@ -319,6 +319,232 @@ run "alerts_created_when_alias_set" {
   }
 }
 
+# enable_observability toggle — when false, the entire observability stack
+# (LAW, AI, query pack, diag settings, alerts) is suppressed.
+run "observability_disabled_no_log_analytics" {
+  command = plan
+
+  variables {
+    enable_observability = false
+  }
+
+  assert {
+    condition     = length(azurerm_log_analytics_workspace.bot) == 0
+    error_message = "Log Analytics workspace should not be created when enable_observability is false."
+  }
+
+  assert {
+    condition     = length(azurerm_application_insights.bot) == 0
+    error_message = "Application Insights should not be created when enable_observability is false."
+  }
+
+  assert {
+    condition     = length(azurerm_log_analytics_query_pack.bot) == 0
+    error_message = "Query pack should not be created when enable_observability is false."
+  }
+}
+
+run "observability_disabled_no_diag_settings" {
+  command = plan
+
+  variables {
+    enable_observability = false
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.function_app) == 0
+    error_message = "Function app diag setting should not be created when enable_observability is false."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.bot_service) == 0
+    error_message = "Bot service diag setting should not be created when enable_observability is false."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.service_plan) == 0
+    error_message = "Service plan diag setting should not be created when enable_observability is false."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.storage_account) == 0
+    error_message = "Storage account diag setting should not be created when enable_observability is false."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.storage_blob) == 0
+    error_message = "Storage blob diag setting should not be created when enable_observability is false."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.storage_queue) == 0
+    error_message = "Storage queue diag setting should not be created when enable_observability is false."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.storage_table) == 0
+    error_message = "Storage table diag setting should not be created when enable_observability is false."
+  }
+}
+
+run "observability_disabled_no_alerts_even_with_alias_set" {
+  command = plan
+
+  variables {
+    enable_observability = false
+    alert_target_alias   = "ops-alerts"
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_action_group.bot_alerts) == 0
+    error_message = "Action group should not be created when enable_observability is false (even if alert_target_alias is set)."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_metric_alert.poison_queue) == 0
+    error_message = "Metric alerts should not be created when enable_observability is false."
+  }
+}
+
+run "observability_enabled_by_default" {
+  command = plan
+
+  # No variables — relying on default enable_observability = true.
+
+  assert {
+    condition     = length(azurerm_log_analytics_workspace.bot) == 1
+    error_message = "Log Analytics workspace should be created by default (enable_observability defaults to true)."
+  }
+
+  assert {
+    condition     = length(azurerm_application_insights.bot) == 1
+    error_message = "Application Insights should be created by default."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.bot_service) == 1
+    error_message = "Bot service diag setting should be created by default."
+  }
+}
+
+# BYO LAW — when create_log_analytics_workspace = false + log_analytics_workspace_id
+# is set, the module skips creating its own LAW but still creates App Insights +
+# diag settings pointed at the BYO id.
+run "byo_law_skips_workspace_creation" {
+  command = plan
+
+  variables {
+    create_log_analytics_workspace = false
+    log_analytics_workspace_id     = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-shared/providers/Microsoft.OperationalInsights/workspaces/log-shared"
+  }
+
+  assert {
+    condition     = length(azurerm_log_analytics_workspace.bot) == 0
+    error_message = "Module should not create its own LAW when create_log_analytics_workspace = false."
+  }
+
+  assert {
+    condition     = length(azurerm_application_insights.bot) == 1
+    error_message = "App Insights should still be created when BYO LAW is provided."
+  }
+
+  assert {
+    condition     = length(azurerm_monitor_diagnostic_setting.bot_service) == 1
+    error_message = "Diag settings should still be created when BYO LAW is provided."
+  }
+}
+
+# Default behavior: create_log_analytics_workspace = true (default) → module
+# creates the LAW even when a log_analytics_workspace_id value is technically
+# also passed (the flag wins). This is the safe default for callers who flip
+# only the flag without passing an id, or pass an id without flipping the flag.
+run "create_law_flag_default_creates_own_workspace" {
+  command = plan
+
+  variables {
+    # No flags set; should still create the LAW under default behavior.
+  }
+
+  assert {
+    condition     = length(azurerm_log_analytics_workspace.bot) == 1
+    error_message = "Module should create its own LAW when create_log_analytics_workspace defaults to true."
+  }
+}
+
+run "required_outbound_fqdns_output_default_includes_app_insights" {
+  command = plan
+
+  # Defaults: enable_observability = true → App Insights ingestion FQDNs included.
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.bot_framework, "login.botframework.com")
+    error_message = "bot_framework FQDNs should include login.botframework.com."
+  }
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.teams_reply, "smba.trafficmanager.net")
+    error_message = "teams_reply FQDNs should include smba.trafficmanager.net (the Activity.serviceUrl base for Teams replies)."
+  }
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.entra_id_auth, "login.microsoftonline.com")
+    error_message = "entra_id_auth FQDNs should include login.microsoftonline.com."
+  }
+
+  assert {
+    condition     = length(output.required_outbound_fqdns.application_insights_ingestion) > 0
+    error_message = "application_insights_ingestion FQDNs should be non-empty when enable_observability = true (default)."
+  }
+}
+
+run "required_outbound_fqdns_output_observability_off_drops_app_insights" {
+  command = plan
+
+  variables {
+    enable_observability = false
+  }
+
+  assert {
+    condition     = length(output.required_outbound_fqdns.application_insights_ingestion) == 0
+    error_message = "application_insights_ingestion should be empty when enable_observability = false."
+  }
+
+  # Bot framework + Entra ID FQDNs are unchanged — the bot still needs them.
+  assert {
+    condition     = contains(output.required_outbound_fqdns.bot_framework, "login.botframework.com")
+    error_message = "bot_framework FQDNs should remain populated even when observability is disabled."
+  }
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.teams_reply, "smba.trafficmanager.net")
+    error_message = "teams_reply FQDNs should remain populated even when observability is disabled."
+  }
+}
+
+run "log_analytics_workspace_id_rejects_bad_format" {
+  command = plan
+
+  variables {
+    log_analytics_workspace_id = "not-a-resource-id"
+  }
+
+  expect_failures = [
+    var.log_analytics_workspace_id,
+  ]
+}
+
+run "log_analytics_workspace_id_rejects_wrong_provider" {
+  command = plan
+
+  variables {
+    log_analytics_workspace_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/st"
+  }
+
+  expect_failures = [
+    var.log_analytics_workspace_id,
+  ]
+}
+
 run "deploy_uami_not_created_when_no_repos" {
   command = plan
 

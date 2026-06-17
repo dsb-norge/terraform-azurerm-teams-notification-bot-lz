@@ -191,6 +191,25 @@ variable "app_namespace" {
   }
 }
 
+variable "create_log_analytics_workspace" {
+  description = <<-DESCRIPTION
+    Whether the module should create its own Log Analytics workspace. Set to
+    `false` when passing an existing workspace via `log_analytics_workspace_id`.
+
+    This is a separate variable (instead of inferring from
+    `log_analytics_workspace_id == null`) because Terraform needs the count of
+    the LAW resource to be known at plan time. When the BYO workspace ID is an
+    expression depending on another resource being created in the same
+    configuration (typical in integration tests), inferring from the id alone
+    leaves the count undetermined at plan time and the apply fails.
+
+    Ignored when `enable_observability = false`.
+    DESCRIPTION
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
 variable "data_scanner_private_link_access" {
   description = <<-EOT
     Whether to declare the Microsoft Defender for Storage data scanner
@@ -281,6 +300,23 @@ variable "deploy_github_actions_from" {
   }
 }
 
+variable "enable_observability" {
+  description = <<-DESCRIPTION
+    Toggle for the observability stack: Log Analytics workspace (or BYO via
+    `log_analytics_workspace_id`), Application Insights, the saved-query pack,
+    diagnostic settings on every loggable resource the module creates, and the
+    metric alerts (which additionally require `alert_target_alias`).
+
+    Default `true` matches the original always-on behavior. Set `false` only
+    when telemetry is intentionally not wanted — the function app runs
+    without it (`APPLICATIONINSIGHTS_CONNECTION_STRING` is not set, the SDK
+    falls back to a no-op).
+    DESCRIPTION
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
 variable "existing_bot_uami_id" {
   description = <<-EOT
     Full resource ID of a pre-created user-assigned managed identity for the bot.
@@ -321,6 +357,30 @@ variable "location" {
   validation {
     condition     = length(var.location) > 0
     error_message = "The 'location' cannot be empty string."
+  }
+}
+
+variable "log_analytics_workspace_id" {
+  description = <<-DESCRIPTION
+    Bring-your-own Log Analytics workspace. When set to a workspace resource ID,
+    the module uses that workspace for App Insights and all diagnostic settings
+    instead of creating its own. When `null`, the module creates a workspace in
+    `var.resource_group_name`.
+
+    Ignored when `enable_observability = false`.
+
+    Format:
+
+    ```
+    /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>
+    ```
+    DESCRIPTION
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.log_analytics_workspace_id == null || can(regex("^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.OperationalInsights/workspaces/[^/]+$", var.log_analytics_workspace_id))
+    error_message = "log_analytics_workspace_id must be a valid Log Analytics Workspace resource ID (`/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>`)."
   }
 }
 
