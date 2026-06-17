@@ -69,7 +69,7 @@ Refer to [examples](https://github.com/dsb-norge/terraform-azurerm-teams-notific
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.12 |
 | <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) | ~> 2.0 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 4.68 |
-| <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.9 |
+| <a name="requirement_time"></a> [time](#requirement\_time) | ~> 0.9 |
 
 ## Resources
 
