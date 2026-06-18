@@ -25,7 +25,7 @@ run "apply" {
   }
 
   variables {
-    name              = "itbot06"
+    name              = "itbot06b"
     bot_app_id        = run.setup.bot_app_id
     api_app_id        = run.setup.api_app_id
     api_app_object_id = run.setup.api_app_object_id
@@ -33,18 +33,18 @@ run "apply" {
 
   # Core resources up.
   assert {
-    condition     = startswith(output.resource_group_name, "rg-itbot06")
-    error_message = "Resource group name should start with 'rg-itbot06'."
+    condition     = startswith(output.resource_group_name, "rg-itbot06b")
+    error_message = "Resource group name should start with 'rg-itbot06b'."
   }
 
   assert {
-    condition     = output.function_app_name == "func-itbot06"
-    error_message = "Function app name should be 'func-itbot06'."
+    condition     = output.function_app_name == "func-itbot06b"
+    error_message = "Function app name should be 'func-itbot06b'."
   }
 
   assert {
-    condition     = output.bot_service_name == "bot-itbot06"
-    error_message = "Bot service name should be 'bot-itbot06'."
+    condition     = output.bot_service_name == "bot-itbot06b"
+    error_message = "Bot service name should be 'bot-itbot06b'."
   }
 
   # The module's LAW output should equal the externally-created shared LAW —
@@ -55,9 +55,9 @@ run "apply" {
   }
 
   # The module's LAW output should NOT contain the module-naming pattern
-  # (`log-itbot06`) — proves the module didn't create its own workspace.
+  # (`log-itbot06b`) — proves the module didn't create its own workspace.
   assert {
-    condition     = !can(regex("/log-itbot06$", output.log_analytics_workspace_id))
+    condition     = !can(regex("/log-itbot06b$", output.log_analytics_workspace_id))
     error_message = "Module should not have created its own LAW with the standard naming when BYO LAW is provided."
   }
 
