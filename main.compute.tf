@@ -103,9 +103,14 @@ resource "azapi_resource" "bot" {
         remoteDebuggingEnabled = false
         vnetRouteAllEnabled    = true
 
-        # APPLICATIONINSIGHTS_CONNECTION_STRING is only set when observability is
-        # enabled; the AI resource doesn't exist otherwise. When unset the SDK
-        # initializes in no-op mode and the function app runs without telemetry.
+        # Ordering matters: Azure preserves the order of appSettings as submitted
+        # and does NOT reorder on subsequent applies. The order here is fixed so
+        # plans stay clean across applies (a reorder would show up as a permanent
+        # noisy diff against existing state). APPLICATIONINSIGHTS_CONNECTION_STRING
+        # is inserted between the storage settings and the M365 Agents SDK
+        # identity block, gated on var.enable_observability; the AI resource
+        # doesn't exist when observability is off and the SDK initializes in
+        # no-op mode without it.
         appSettings = concat(
           [
             # Identity-based connection for AzureWebJobsStorage (queue/blob/table triggers and host storage).
@@ -117,6 +122,11 @@ resource "azapi_resource" "bot" {
             { name = "AzureWebJobsStorage__queueServiceUri", value = "https://${azurerm_storage_account.bot.name}.queue.core.windows.net" },
             { name = "AzureWebJobsStorage__tableServiceUri", value = "https://${azurerm_storage_account.bot.name}.table.core.windows.net" },
             { name = "StorageAccountName", value = azurerm_storage_account.bot.name },
+          ],
+          var.enable_observability ? [
+            { name = "APPLICATIONINSIGHTS_CONNECTION_STRING", value = azurerm_application_insights.bot[0].connection_string },
+          ] : [],
+          [
             # M365 Agents SDK identity — env vars override zero-GUID placeholders in appsettings.json.
             # Program.cs maps BotAppId/TenantId/AzureWebJobsStorage__clientId to nested SDK config paths.
             # No client secret needed — UAMI authenticates as the bot app registration via federated trust.
@@ -125,9 +135,6 @@ resource "azapi_resource" "bot" {
             { name = "ApiAppId", value = var.api_app_id },
             { name = "PoisonAlertAlias", value = var.alert_target_alias },
           ],
-          var.enable_observability ? [
-            { name = "APPLICATIONINSIGHTS_CONNECTION_STRING", value = azurerm_application_insights.bot[0].connection_string },
-          ] : [],
         )
 
         # Priority layout for main app inbound rules:
