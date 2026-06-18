@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.0.0...v1.0.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* **compute:** keep appSettings order stable across applies ([#5](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/issues/5)) ([8301620](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/commit/8301620ac1bb24ad1e2080d283a09be284dc8ffa))
+
 ## 1.0.0 (2026-06-17)
 
 
