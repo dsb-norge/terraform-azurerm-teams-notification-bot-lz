@@ -495,6 +495,33 @@ run "required_outbound_fqdns_output_default_includes_app_insights" {
     condition     = length(output.required_outbound_fqdns.application_insights_ingestion) > 0
     error_message = "application_insights_ingestion FQDNs should be non-empty when enable_observability = true (default)."
   }
+
+  # flex_consumption_platform — the platform FQDNs the underlying Container Apps
+  # infrastructure (Microsoft.App/environments delegation) needs. Missing these
+  # breaks scale-from-zero for queue/timer triggers when the function app sits
+  # behind an egress firewall. Source: Container Apps FW reference.
+  assert {
+    condition     = contains(output.required_outbound_fqdns.flex_consumption_platform, "*.identity.azure.net")
+    error_message = "flex_consumption_platform FQDNs should include *.identity.azure.net — required for regional managed-identity token acquisition."
+  }
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.flex_consumption_platform, "*.login.microsoft.com")
+    error_message = "flex_consumption_platform FQDNs should include *.login.microsoft.com — required for regional Entra ID auth."
+  }
+
+  assert {
+    condition     = contains(output.required_outbound_fqdns.flex_consumption_platform, "mcr.microsoft.com")
+    error_message = "flex_consumption_platform FQDNs should include mcr.microsoft.com — required for platform bootstrap binary pulls on cold start."
+  }
+
+  # self_hairpin — the function app's own hostnames (computed at apply time).
+  # The host hairpins through the egress firewall to call itself for
+  # SyncTriggers and the deployment-sync probe.
+  assert {
+    condition     = length(output.required_outbound_fqdns.self_hairpin) == 2
+    error_message = "self_hairpin should contain exactly 2 entries: the function app's default hostname and the SCM hostname."
+  }
 }
 
 run "required_outbound_fqdns_output_observability_off_drops_app_insights" {

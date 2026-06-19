@@ -76,6 +76,23 @@ output "required_outbound_fqdns" {
       hands `https://smba.trafficmanager.net/<region>/...` to the bot as
       `Activity.serviceUrl`. Not covered by `*.botframework.com`. Source:
       Bot Framework REST API reference, Base URI section.
+    - `flex_consumption_platform`: Endpoints the underlying Container
+      Apps / `Microsoft.App/environments` infrastructure needs to reach
+      for managed-identity token acquisition and platform bootstrap.
+      Always required. Empirically: missing these causes Flex
+      Consumption's scale-controller signalling to break — queue / timer
+      triggers polled once at startup then never again, messages sat in
+      queue indefinitely. Fingerprint when missing: ~24 FW denies/min
+      from the integration subnet to `control-<region>.identity.azure.net`
+      and `<region>.login.microsoft.com`. Source: Azure Container Apps
+      firewall reference (Flex Consumption uses the same delegation).
+    - `self_hairpin`: The function app's own public hostnames. Required
+      because the function host calls itself for SyncTriggers (registers
+      trigger metadata with the platform — without it, queue/timer
+      triggers never wake from scale-to-zero) and for the deployment-
+      sync probe. With VNet integration the host's call to its own
+      hostname hairpins out through the egress firewall before returning
+      to the public front-end.
     - `application_insights_ingestion`: telemetry endpoints, only emitted
       when `enable_observability = true`. Empty list otherwise.
 
@@ -91,6 +108,7 @@ output "required_outbound_fqdns" {
     - https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-api-reference?view=azure-bot-service-4.0#base-uri
     - https://learn.microsoft.com/azure/azure-monitor/fundamentals/azure-monitor-network-access#outbound-traffic
     - https://learn.microsoft.com/azure/azure-functions/functions-networking-options (Flex Consumption — NSGs always apply to outbound)
+    - https://learn.microsoft.com/azure/container-apps/use-azure-firewall#application-rules (Container Apps FW reference — same `Microsoft.App/environments` delegation Flex Consumption runs on; documents the managed-identity and platform-bootstrap FQDNs)
     DESCRIPTION
   value = {
     entra_id_auth = [
@@ -106,6 +124,24 @@ output "required_outbound_fqdns" {
     ]
     teams_reply = [
       "smba.trafficmanager.net",
+    ]
+    flex_consumption_platform = [
+      # Managed-identity regional control plane + Entra ID regional variants.
+      # Required for the Container Apps platform under Flex Consumption to
+      # acquire UAMI tokens and run scale-controller signalling. Missing
+      # these is a silent killer of scale-from-zero for non-HTTP triggers.
+      "*.identity.azure.net",
+      "*.login.microsoft.com",
+      "*.login.microsoftonline.com",
+      # Platform bootstrap binary pulls on cold start.
+      "mcr.microsoft.com",
+      "*.data.mcr.microsoft.com",
+      "packages.aks.azure.com",
+      "acs-mirror.azureedge.net",
+    ]
+    self_hairpin = [
+      azapi_resource.bot.output.properties.defaultHostName,
+      replace(azapi_resource.bot.output.properties.defaultHostName, ".azurewebsites.net", ".scm.azurewebsites.net"),
     ]
     application_insights_ingestion = var.enable_observability ? [
       "*.in.applicationinsights.azure.com",
