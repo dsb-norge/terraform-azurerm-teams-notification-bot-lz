@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.0.1...v1.1.0) (2026-07-01)
+
+
+### Features
+
+* expose easy_auth_excluded_paths output; exercise it in 02-full example ([6dc1b58](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/commit/6dc1b586be293fe0d050506a9f294431f8aa7b58))
+* support additional EasyAuth excludedPaths from app_requirements ([f5e8389](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/commit/f5e8389616574c310dda679dd41f61757ad238b4))
+
 ## [1.0.1](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.0.0...v1.0.1) (2026-06-18)
 
 
