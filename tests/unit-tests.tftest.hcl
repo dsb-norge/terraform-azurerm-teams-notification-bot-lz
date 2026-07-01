@@ -1759,6 +1759,77 @@ run "auth_precondition_rejects_non_aad" {
   expect_failures = [azapi_update_resource.bot_auth_settings]
 }
 
+# --- EasyAuth excludedPaths ---
+
+run "easy_auth_excludes_only_messaging_endpoint_by_default" {
+  command = plan
+
+  variables {
+    app_requirements = {}
+  }
+
+  assert {
+    condition     = contains(azapi_update_resource.bot_auth_settings.body.properties.globalValidation.excludedPaths, "/api/messages")
+    error_message = "Default excludedPaths should contain the Bot Framework messaging endpoint."
+  }
+
+  assert {
+    condition     = length(azapi_update_resource.bot_auth_settings.body.properties.globalValidation.excludedPaths) == 1
+    error_message = "By default excludedPaths should contain only the messaging endpoint (nothing else)."
+  }
+}
+
+run "easy_auth_excluded_paths_appends_app_declared_paths" {
+  command = plan
+
+  variables {
+    app_requirements = {
+      bot_auth_settings = {
+        # The app already includes the messaging endpoint in its list — distinct() must dedup it.
+        easy_auth_excluded_paths = ["/api/messages", "/api/v1/ingest/updown"]
+      }
+    }
+  }
+
+  assert {
+    condition     = contains(azapi_update_resource.bot_auth_settings.body.properties.globalValidation.excludedPaths, "/api/v1/ingest/updown")
+    error_message = "excludedPaths should include the app-declared anonymous ingress path."
+  }
+
+  assert {
+    condition     = contains(azapi_update_resource.bot_auth_settings.body.properties.globalValidation.excludedPaths, "/api/messages")
+    error_message = "excludedPaths should still include the messaging endpoint."
+  }
+
+  assert {
+    condition     = length(azapi_update_resource.bot_auth_settings.body.properties.globalValidation.excludedPaths) == 2
+    error_message = "excludedPaths should be deduplicated (messaging endpoint listed once)."
+  }
+}
+
+run "easy_auth_always_includes_messaging_endpoint_even_if_app_omits_it" {
+  command = plan
+
+  variables {
+    app_requirements = {
+      bot_auth_settings = {
+        # Messaging endpoint intentionally NOT in the list — the module must still exclude it.
+        easy_auth_excluded_paths = ["/api/v1/ingest/updown"]
+      }
+    }
+  }
+
+  assert {
+    condition     = contains(azapi_update_resource.bot_auth_settings.body.properties.globalValidation.excludedPaths, "/api/messages")
+    error_message = "Messaging endpoint must always be excluded even if the app omits it from easy_auth_excluded_paths."
+  }
+
+  assert {
+    condition     = contains(azapi_update_resource.bot_auth_settings.body.properties.globalValidation.excludedPaths, "/api/v1/ingest/updown")
+    error_message = "App-declared ingress path should be excluded."
+  }
+}
+
 # --- Output tests (require apply with mock providers) ---
 
 run "outputs_with_defaults" {
