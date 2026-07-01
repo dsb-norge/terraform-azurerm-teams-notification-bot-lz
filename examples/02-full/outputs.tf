@@ -14,6 +14,11 @@ output "deploy_uami_client_id" {
   value       = module.teams_notification_bot.deploy_uami_client_id
 }
 
+output "easy_auth_excluded_paths" {
+  description = "EasyAuth excludedPaths applied to the function app (messaging endpoint + app-declared anonymous paths)."
+  value       = module.teams_notification_bot.easy_auth_excluded_paths
+}
+
 output "function_app_name" {
   description = "The name of the Function App."
   value       = module.teams_notification_bot.function_app_name

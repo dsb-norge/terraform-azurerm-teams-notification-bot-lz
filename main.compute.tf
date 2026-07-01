@@ -204,6 +204,17 @@ resource "azapi_resource" "bot" {
 # the Authorization header — causing the Bot SDK to fail with "No Authorization header".
 # Excluding /api/messages from EasyAuth lets Bot Framework tokens pass through untouched.
 # The Bot Framework SDK validates these tokens itself (JwtTokenValidation.AuthenticateRequest).
+locals {
+  # EasyAuth globalValidation.excludedPaths: always exclude the Bot Framework messaging endpoint
+  # (see comment above), plus any extra paths the app declares — e.g. an anonymous webhook ingress
+  # route that authenticates itself in-handler. distinct() dedups the messaging endpoint if the app
+  # also lists it in easy_auth_excluded_paths.
+  easy_auth_excluded_paths = distinct(concat(
+    [var.app_requirements.bot_service.messaging_endpoint],
+    var.app_requirements.bot_auth_settings.easy_auth_excluded_paths
+  ))
+}
+
 resource "azapi_update_resource" "bot_auth_settings" {
   type      = "Microsoft.Web/sites/config@2025-03-01"
   name      = "authsettingsV2"
@@ -217,13 +228,7 @@ resource "azapi_update_resource" "bot_auth_settings" {
       globalValidation = {
         requireAuthentication       = var.app_requirements.bot_auth_settings.require_authentication
         unauthenticatedClientAction = var.app_requirements.bot_auth_settings.unauthenticated_action
-        # Always exclude the Bot Framework messaging endpoint (see comment above), plus any extra
-        # paths the app declares — e.g. an anonymous webhook ingress route that authenticates itself
-        # in-handler. distinct() dedups the messaging endpoint if the app also lists it.
-        excludedPaths = distinct(concat(
-          [var.app_requirements.bot_service.messaging_endpoint],
-          var.app_requirements.bot_auth_settings.easy_auth_excluded_paths
-        ))
+        excludedPaths               = local.easy_auth_excluded_paths
       }
       identityProviders = {
         azureActiveDirectory = {

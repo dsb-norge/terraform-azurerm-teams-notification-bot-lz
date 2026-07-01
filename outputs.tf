@@ -20,6 +20,11 @@ output "deploy_uami_client_id" {
   value       = length(var.deploy_github_actions_from) > 0 ? azurerm_user_assigned_identity.deploy[0].client_id : null
 }
 
+output "easy_auth_excluded_paths" {
+  description = "EasyAuth globalValidation.excludedPaths applied to the function app: the Bot Framework messaging endpoint plus any app-declared anonymous paths (e.g. a self-authenticating webhook ingress route)."
+  value       = local.easy_auth_excluded_paths
+}
+
 output "function_app_hostname" {
   description = "The default hostname of the Function App."
   value       = azapi_resource.bot.output.properties.defaultHostName

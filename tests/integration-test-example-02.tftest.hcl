@@ -73,4 +73,23 @@ run "apply" {
     condition     = length(output.private_endpoint_ids) == 3
     error_message = "Mode 1 should create 3 private endpoints."
   }
+
+  # app-requirements.json declares an extra anonymous ingress path in
+  # bot_auth_settings.easy_auth_excluded_paths. Verify it lands in EasyAuth's
+  # excludedPaths alongside the always-present messaging endpoint — this
+  # exercises the real authsettingsV2 apply against Azure.
+  assert {
+    condition     = contains(output.easy_auth_excluded_paths, "/api/messages")
+    error_message = "excludedPaths must always include the Bot Framework messaging endpoint."
+  }
+
+  assert {
+    condition     = contains(output.easy_auth_excluded_paths, "/api/v1/ingest/updown")
+    error_message = "excludedPaths should include the app-declared anonymous ingress path from app-requirements.json."
+  }
+
+  assert {
+    condition     = length(output.easy_auth_excluded_paths) == 2
+    error_message = "excludedPaths should be deduplicated to exactly [messaging endpoint, ingress path]."
+  }
 }

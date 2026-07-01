@@ -32,7 +32,11 @@
     "require_authentication": false,
     "unauthenticated_action": "AllowAnonymous",
     "identity_provider": "azureActiveDirectory",
-    "required_role": "Notifications.Send"
+    "required_role": "Notifications.Send",
+    "easy_auth_excluded_paths": [
+      "/api/messages",
+      "/api/v1/ingest/updown"
+    ]
   },
   "bot_service": {
     "type": "SingleTenant",
