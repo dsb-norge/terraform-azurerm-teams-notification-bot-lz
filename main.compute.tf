@@ -217,7 +217,13 @@ resource "azapi_update_resource" "bot_auth_settings" {
       globalValidation = {
         requireAuthentication       = var.app_requirements.bot_auth_settings.require_authentication
         unauthenticatedClientAction = var.app_requirements.bot_auth_settings.unauthenticated_action
-        excludedPaths               = [var.app_requirements.bot_service.messaging_endpoint]
+        # Always exclude the Bot Framework messaging endpoint (see comment above), plus any extra
+        # paths the app declares — e.g. an anonymous webhook ingress route that authenticates itself
+        # in-handler. distinct() dedups the messaging endpoint if the app also lists it.
+        excludedPaths = distinct(concat(
+          [var.app_requirements.bot_service.messaging_endpoint],
+          var.app_requirements.bot_auth_settings.easy_auth_excluded_paths
+        ))
       }
       identityProviders = {
         azureActiveDirectory = {

@@ -53,6 +53,9 @@ variable "app_requirements" {
       unauthenticated_action = optional(string, "AllowAnonymous")
       identity_provider      = optional(string, "azureActiveDirectory")
       required_role          = optional(string, "Notifications.Send")
+      # Extra EasyAuth excludedPaths declared by the app (e.g. an anonymous webhook ingress route
+      # that performs its own in-handler auth). The messaging endpoint is always excluded regardless.
+      easy_auth_excluded_paths = optional(list(string), [])
     }), {})
     bot_service = optional(object({
       type               = optional(string, "SingleTenant")
