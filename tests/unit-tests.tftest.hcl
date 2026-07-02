@@ -271,6 +271,97 @@ run "management_ip_rules_rejects_invalid_cidr" {
   expect_failures = [var.management_ip_rules]
 }
 
+# Azure caps IpSecurityRestriction.Description and .Name at 64 chars and rejects
+# longer values only at apply time (BadRequest, ExtendedCode 01033). Validate at
+# plan time instead. Both variables feed ipSecurityRestrictions, so both are checked.
+# (Regression guard: dev-wlzs apply once failed on a 106-char caller-rule description.)
+
+run "allowed_caller_rules_rejects_long_description" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      # description is 71 chars (> 64); rule is otherwise valid so only the length check trips
+      {
+        name        = "ok-name"
+        description = "desc-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789"
+        service_tag = "AzureCloud"
+      }
+    ]
+  }
+
+  expect_failures = [var.allowed_caller_rules]
+}
+
+run "allowed_caller_rules_rejects_long_name" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      # name is 71 chars (> 64); rule is otherwise valid
+      {
+        name        = "name-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789"
+        description = "ok"
+        service_tag = "AzureCloud"
+      }
+    ]
+  }
+
+  expect_failures = [var.allowed_caller_rules]
+}
+
+run "management_ip_rules_rejects_long_description" {
+  command = plan
+
+  variables {
+    management_ip_rules = [
+      # description is 71 chars (> 64); cidr is valid so only the length check trips
+      {
+        name        = "ok-name"
+        description = "desc-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789"
+        cidr        = "10.0.0.0/24"
+      }
+    ]
+  }
+
+  expect_failures = [var.management_ip_rules]
+}
+
+run "management_ip_rules_rejects_long_name" {
+  command = plan
+
+  variables {
+    management_ip_rules = [
+      # name is 71 chars (> 64); cidr is valid
+      {
+        name        = "name-0123456789-0123456789-0123456789-0123456789-0123456789-0123456789"
+        description = "ok"
+        cidr        = "10.0.0.0/24"
+      }
+    ]
+  }
+
+  expect_failures = [var.management_ip_rules]
+}
+
+# A rule with a description of exactly 64 chars must PASS the length check.
+run "allowed_caller_rules_accepts_64_char_description" {
+  command = plan
+
+  variables {
+    allowed_caller_rules = [
+      # description is exactly 64 chars
+      {
+        name        = "ok-name"
+        description = "0123456789-0123456789-0123456789-0123456789-0123456789-012345678"
+        service_tag = "AzureCloud"
+      }
+    ]
+  }
+
+  # No expect_failures: the configuration must be valid at 64 chars.
+}
+
 # --- Conditional resources ---
 
 run "alerts_disabled_when_alias_empty" {
