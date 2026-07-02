@@ -159,6 +159,16 @@ variable "allowed_caller_rules" {
   }
 
   validation {
+    condition     = alltrue([for rule in var.allowed_caller_rules : length(rule.description) <= 64])
+    error_message = "Each allowed_caller_rules description must be 64 characters or fewer — Azure rejects a longer IpSecurityRestriction.Description at apply time (BadRequest, ExtendedCode 01033)."
+  }
+
+  validation {
+    condition     = alltrue([for rule in var.allowed_caller_rules : length(rule.name) <= 64])
+    error_message = "Each allowed_caller_rules name must be 64 characters or fewer (Azure IpSecurityRestriction.Name limit)."
+  }
+
+  validation {
     condition = alltrue([
       for rule in var.allowed_caller_rules :
       (rule.cidr != null && rule.service_tag == null) || (rule.cidr == null && rule.service_tag != null)
@@ -411,6 +421,16 @@ variable "management_ip_rules" {
   validation {
     condition     = alltrue([for rule in var.management_ip_rules : !can(regex("[;,]", rule.description))])
     error_message = "Rule descriptions must not contain ';' or ',' — Azure rejects these characters in IpSecurityRestriction.Description."
+  }
+
+  validation {
+    condition     = alltrue([for rule in var.management_ip_rules : length(rule.description) <= 64])
+    error_message = "Each management_ip_rules description must be 64 characters or fewer — Azure rejects a longer IpSecurityRestriction.Description at apply time (BadRequest, ExtendedCode 01033)."
+  }
+
+  validation {
+    condition     = alltrue([for rule in var.management_ip_rules : length(rule.name) <= 64])
+    error_message = "Each management_ip_rules name must be 64 characters or fewer (Azure IpSecurityRestriction.Name limit)."
   }
 
   validation {
