@@ -1022,6 +1022,105 @@ run "deploy_github_actions_from_rejects_empty_tag" {
   expect_failures = [var.deploy_github_actions_from]
 }
 
+run "deploy_github_actions_from_rejects_non_numeric_repository_id" {
+  command = plan
+
+  variables {
+    github_org    = "example-org"
+    github_org_id = "29656362"
+    deploy_github_actions_from = {
+      "my-repo" = {
+        environments  = ["prod"]
+        repository_id = "not-a-number"
+      }
+    }
+  }
+
+  expect_failures = [var.deploy_github_actions_from]
+}
+
+# --- github_org_id validation ---
+
+run "github_org_id_rejects_non_numeric" {
+  command = plan
+
+  variables {
+    github_org_id = "dsb-norge"
+  }
+
+  expect_failures = [var.github_org_id]
+}
+
+# --- Immutable-format OIDC subject claims ---
+
+run "immutable_fics_created_when_repository_id_set" {
+  command = plan
+
+  variables {
+    github_org    = "example-org"
+    github_org_id = "29656362"
+    deploy_github_actions_from = {
+      "my-repo" = {
+        pull_request_events = true
+        environments        = ["prod"]
+        branches            = ["main"]
+        tags                = ["v*"]
+        repository_id       = "987654321"
+      }
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_federated_identity_credential.deploy_github) == 8
+    error_message = "Each classic FIC should get an immutable-format twin when repository_id is set (4 classic + 4 immutable)."
+  }
+
+  assert {
+    condition     = azurerm_federated_identity_credential.deploy_github["env-prod-in-example-org__my-repo-immutable-sub"].subject == "repo:example-org@29656362/my-repo@987654321:environment:prod"
+    error_message = "Immutable environment FIC subject should use the repo:<org>@<org-id>/<repo>@<repo-id>:<trigger> format."
+  }
+
+  assert {
+    condition     = azurerm_federated_identity_credential.deploy_github["branch-main-in-example-org__my-repo-immutable-sub"].subject == "repo:example-org@29656362/my-repo@987654321:ref:refs/heads/main"
+    error_message = "Immutable branch FIC subject should use the repo:<org>@<org-id>/<repo>@<repo-id>:<trigger> format."
+  }
+
+  assert {
+    condition     = azurerm_federated_identity_credential.deploy_github["pull-requests-in-example-org__my-repo-immutable-sub"].subject == "repo:example-org@29656362/my-repo@987654321:pull_request"
+    error_message = "Immutable pull request FIC subject should use the repo:<org>@<org-id>/<repo>@<repo-id>:<trigger> format."
+  }
+
+  assert {
+    condition     = azurerm_federated_identity_credential.deploy_github["tag-vwildcard-in-example-org__my-repo-immutable-sub"].subject == "repo:example-org@29656362/my-repo@987654321:ref:refs/tags/v*"
+    error_message = "Immutable tag FIC should sanitize '*' in the name but keep the raw tag pattern in the subject."
+  }
+
+  assert {
+    condition     = azurerm_federated_identity_credential.deploy_github["env-prod-in-example-org__my-repo"].subject == "repo:example-org/my-repo:environment:prod"
+    error_message = "Classic FICs must be kept unchanged alongside the immutable twins."
+  }
+}
+
+run "immutable_fics_not_created_without_repository_id" {
+  command = plan
+
+  variables {
+    github_org    = "example-org"
+    github_org_id = "29656362"
+    deploy_github_actions_from = {
+      "my-repo" = {
+        environments = ["prod"]
+        branches     = ["main"]
+      }
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_federated_identity_credential.deploy_github) == 2
+    error_message = "No immutable-format twins should be created when repository_id is not set."
+  }
+}
+
 # --- Cross-variable precondition ---
 
 run "deploy_uami_requires_github_org" {
@@ -1032,6 +1131,23 @@ run "deploy_uami_requires_github_org" {
     deploy_github_actions_from = {
       "my-repo" = {
         environments = ["prod"]
+      }
+    }
+  }
+
+  expect_failures = [azurerm_user_assigned_identity.deploy]
+}
+
+run "deploy_uami_requires_github_org_id_when_repository_id_set" {
+  command = plan
+
+  variables {
+    github_org    = "example-org"
+    github_org_id = ""
+    deploy_github_actions_from = {
+      "my-repo" = {
+        environments  = ["prod"]
+        repository_id = "987654321"
       }
     }
   }

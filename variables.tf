@@ -253,6 +253,21 @@ variable "deploy_github_actions_from" {
       branches            : list of branches to allow access from.
       tags                : list of tags to allow access from.
       pull_request_events : if true, allow access from pull request events.
+      repository_id       : the repository's permanent numeric GitHub ID. When set
+                            (requires var.github_org_id), every FIC for this repo gets
+                            an additional twin whose subject uses GitHub's immutable
+                            format 'repo:<org>@<org-id>/<repo>@<repo-id>:<trigger>'.
+                            Obtain with: gh api /repos/<org>/<repo> --jq .id
+
+    IMMUTABLE SUBJECT CLAIMS — set 'repository_id' for new/renamed/transferred repos:
+      Since 2026-07-15 GitHub issues two OIDC subject-claim formats. Repos created
+      before the cutoff issue the classic 'repo:<org>/<repo>:<trigger>' subject;
+      repos created, renamed or transferred after it (and opted-in repos) issue the
+      immutable 'repo:<org>@<org-id>/<repo>@<repo-id>:<trigger>' subject. A standard
+      FIC matches its subject exactly, so a classic-only FIC silently stops matching
+      once its repo starts issuing immutable subjects. Provide 'repository_id' (and
+      var.github_org_id) to also create immutable-format FICs alongside the classic
+      ones. See: https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/
 
     RECOMMENDATION — prefer 'environments' over 'branches' or 'tags':
       Standard FICs match the OIDC token's 'subject' claim EXACTLY (no wildcards).
@@ -278,6 +293,7 @@ variable "deploy_github_actions_from" {
     environments        = optional(list(string), [])
     branches            = optional(list(string), [])
     tags                = optional(list(string), [])
+    repository_id       = optional(string, null)
   }))
   default = {}
 
@@ -310,6 +326,13 @@ variable "deploy_github_actions_from" {
           length(tag) > 0
         ]) : true
     ]))
+  }
+  validation {
+    error_message = "deploy_github_actions_from.repository_id: Must be the repository's numeric GitHub ID (digits only) when set."
+    condition = alltrue(
+      [for repo_name, repo_cfg in var.deploy_github_actions_from :
+        repo_cfg.repository_id == null || can(regex("^[0-9]+$", repo_cfg.repository_id))
+    ])
   }
 }
 
@@ -359,6 +382,25 @@ variable "github_org" {
   validation {
     condition     = var.github_org == "" || can(regex("^[a-zA-Z0-9-]+$", var.github_org))
     error_message = "github_org must be a valid GitHub organization name (alphanumeric and hyphens)."
+  }
+}
+
+variable "github_org_id" {
+  description = <<-EOT
+    Permanent numeric GitHub ID of var.github_org, used to build immutable-format
+    OIDC subject claims ('repo:<org>@<org-id>/<repo>@<repo-id>:<trigger>') for the
+    deploy UAMI's federated identity credentials. Required when any repository in
+    var.deploy_github_actions_from sets 'repository_id'. Numeric GitHub IDs are
+    permanent and never reused.
+
+    Obtain with: gh api /orgs/<org> --jq .id
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.github_org_id == "" || can(regex("^[0-9]+$", var.github_org_id))
+    error_message = "github_org_id must be the organization's numeric GitHub ID (digits only)."
   }
 }
 
