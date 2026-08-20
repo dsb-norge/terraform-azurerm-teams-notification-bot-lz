@@ -107,12 +107,19 @@ module "teams_notification_bot" {
     },
   ]
 
-  # CI/CD deployment — federated identity credentials for GitHub Actions
-  github_org = "example-org"
+  # CI/CD deployment — federated identity credentials for GitHub Actions.
+  # github_org_id + repository_id (permanent numeric GitHub IDs, obtain with
+  # 'gh api /orgs/<org> --jq .id' / 'gh api /repos/<org>/<repo> --jq .id')
+  # additionally create immutable-format OIDC subject FICs
+  # (repo:<org>@<org-id>/<repo>@<repo-id>:<trigger>) — required for repos
+  # created, renamed or transferred after 2026-07-15.
+  github_org    = "example-org"
+  github_org_id = "12345678"
   deploy_github_actions_from = {
     "teams-notification-bot" = {
-      environments = ["production"]
-      branches     = ["main"]
+      environments  = ["production"]
+      branches      = ["main"]
+      repository_id = "987654321"
     }
   }
 

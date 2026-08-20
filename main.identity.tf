@@ -51,6 +51,13 @@ resource "azurerm_user_assigned_identity" "deploy" {
       condition     = var.github_org != ""
       error_message = "The 'github_org' must be set when 'deploy_github_actions_from' is non-empty."
     }
+    precondition {
+      condition = (
+        var.github_org_id != ""
+        || alltrue([for repo_cfg in var.deploy_github_actions_from : repo_cfg.repository_id == null])
+      )
+      error_message = "The 'github_org_id' must be set when any repository in 'deploy_github_actions_from' sets 'repository_id'."
+    }
   }
 }
 
@@ -86,6 +93,37 @@ locals {
       },
     )
   ]...)
+
+  # Since 2026-07-15 GitHub issues two OIDC subject-claim formats for Actions tokens:
+  #   classic:   repo:<org>/<repo>:<trigger>                        — repos created before 2026-07-15
+  #   immutable: repo:<org>@<org-id>/<repo>@<repo-id>:<trigger>     — repos created, renamed or
+  #              transferred after the cutoff, and repos opted in to immutable subjects
+  # A standard FIC matches its subject exactly, so a classic-format FIC silently stops
+  # matching the moment its repo starts issuing immutable-format subjects. Flexible FICs
+  # (claimsMatchingExpression) are not available on user-assigned managed identities
+  # (app registrations only), so for every repo that provides its permanent numeric
+  # 'repository_id' we mirror each classic FIC with an immutable-format twin. Classic
+  # FICs are kept: pre-cutoff repos keep issuing classic subjects until renamed,
+  # transferred or opted in. Numeric org/repo IDs are permanent and never reused.
+  # The wildcard caveat above applies unchanged: a '*' inside a subject does not
+  # wildcard-match in a standard FIC, classic or immutable.
+  # https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-github-actions-oidc-tokens/
+  github_oidc_immutable_subject_claims = merge([for repo_name, repo_cfg in var.deploy_github_actions_from :
+    repo_cfg.repository_id == null ? {} : merge(
+      repo_cfg.pull_request_events ? {
+        "pull-requests-in-${local.gh_org}__${repo_name}-immutable-sub" = "repo:${local.gh_org}@${var.github_org_id}/${repo_name}@${repo_cfg.repository_id}:pull_request"
+      } : {},
+      { for env in repo_cfg.environments :
+        "env-${env}-in-${local.gh_org}__${repo_name}-immutable-sub" => "repo:${local.gh_org}@${var.github_org_id}/${repo_name}@${repo_cfg.repository_id}:environment:${env}"
+      },
+      { for branch in repo_cfg.branches :
+        "branch-${branch}-in-${local.gh_org}__${repo_name}-immutable-sub" => "repo:${local.gh_org}@${var.github_org_id}/${repo_name}@${repo_cfg.repository_id}:ref:refs/heads/${branch}"
+      },
+      { for tag in repo_cfg.tags :
+        "tag-${replace(tag, "*", "wildcard")}-in-${local.gh_org}__${repo_name}-immutable-sub" => "repo:${local.gh_org}@${var.github_org_id}/${repo_name}@${repo_cfg.repository_id}:ref:refs/tags/${tag}"
+      },
+    )
+  ]...)
 }
 
 # Wait for MS Graph to register the deploy UAMI's service principal.
@@ -100,7 +138,10 @@ resource "time_sleep" "deploy_uami_propagation" {
 }
 
 resource "azurerm_federated_identity_credential" "deploy_github" {
-  for_each = local.github_oidc_subject_claims
+  for_each = merge(
+    local.github_oidc_subject_claims,
+    local.github_oidc_immutable_subject_claims,
+  )
 
   audience                  = ["api://AzureADTokenExchange"]
   issuer                    = "https://token.actions.githubusercontent.com"
@@ -109,4 +150,18 @@ resource "azurerm_federated_identity_credential" "deploy_github" {
   user_assigned_identity_id = azurerm_user_assigned_identity.deploy[0].id
 
   depends_on = [time_sleep.deploy_uami_propagation]
+
+  lifecycle {
+    # Azure FIC names: 3-120 chars, letters/digits/hyphens/underscores, must start
+    # with a letter or digit. Generated keys embed caller-supplied org/repo/env/
+    # branch/tag names, so fail at plan time with a readable message instead of a
+    # cryptic ARM error at apply time.
+    precondition {
+      condition = (
+        length(each.key) >= 3 && length(each.key) <= 120
+        && length(regexall("^[A-Za-z0-9][A-Za-z0-9_-]*$", each.key)) == 1
+      )
+      error_message = "Generated FIC name '${each.key}' violates Azure naming rules (3-120 chars; letters, digits, hyphens and underscores only). Shorten or rename the offending repository/environment/branch/tag."
+    }
+  }
 }

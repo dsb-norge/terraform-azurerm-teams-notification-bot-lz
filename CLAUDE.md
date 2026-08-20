@@ -46,7 +46,7 @@ Confirmed empirically (April 2026): App Service `ipSecurityRestrictions` accepts
 
 ## Testing
 
-- **Unit tests** (`tests/unit-tests.tftest.hcl`): 57 tests using `mock_provider`. Cover variable validation, conditional resources, BYON network, BYON identity, naming, outputs.
+- **Unit tests** (`tests/unit-tests.tftest.hcl`): 91 tests using `mock_provider`. Cover variable validation, conditional resources, BYON network, BYON identity, naming, outputs, GitHub OIDC FICs (classic + immutable subject formats).
 - **Integration tests** (`tests/integration-test-*.tftest.hcl`): Run against real Azure. Each uses `tests/setup/` for random UUIDs and may use additional setup helpers (e.g. `tests/setup-byon-identity/` for BYON identity scenarios).
 - Integration tests use the **ss13-IKT-IAC-CICD** subscription. Set it before running: `az account set --subscription ss13-IKT-IAC-CICD`.
 - The `prevent_deletion_if_contains_resources = false` flag is set on test resource groups because Azure auto-creates a Smart Detection action group.
