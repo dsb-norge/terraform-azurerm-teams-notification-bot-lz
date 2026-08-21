@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.1.1...v1.2.0) (2026-08-21)
+
+
+### Features
+
+* add immutable-format OIDC subject claim FICs for GitHub Actions ([5289014](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/commit/5289014e9476a24f2837eb2b9e90598b09d6275e))
+
 ## [1.1.1](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.1.0...v1.1.1) (2026-07-02)
 
 
