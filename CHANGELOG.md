@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.2.0...v1.3.0) (2026-08-27)
+
+
+### Features
+
+* add log_levels for per-category function app log verbosity ([#14](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/issues/14)) ([a95cd7b](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/commit/a95cd7b3cbe04a043b21324bab586f411315934b))
+
 ## [1.2.0](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.1.1...v1.2.0) (2026-08-21)
 
 
