@@ -2166,3 +2166,149 @@ run "existing_uami_outputs" {
     error_message = "uami_principal_id should come from the existing UAMI data source."
   }
 }
+
+# --- log_levels ---
+
+run "log_levels_rejects_invalid_level" {
+  command = plan
+
+  variables {
+    log_levels = {
+      TeamsNotificationBot = "Verbose" # not a Microsoft.Extensions.Logging LogLevel
+    }
+  }
+
+  expect_failures = [var.log_levels]
+}
+
+run "log_levels_rejects_lowercase_level" {
+  command = plan
+
+  variables {
+    log_levels = {
+      TeamsNotificationBot = "debug" # LogLevel names are case-sensitive
+    }
+  }
+
+  expect_failures = [var.log_levels]
+}
+
+run "log_levels_rejects_malformed_category" {
+  command = plan
+
+  variables {
+    log_levels = {
+      "Microsoft..Agents" = "Debug" # empty segment
+    }
+  }
+
+  expect_failures = [var.log_levels]
+}
+
+run "log_levels_rejects_category_with_setting_separator" {
+  command = plan
+
+  variables {
+    # '__' is the .NET config nesting separator — a category containing it would
+    # render to a setting name that means something else entirely.
+    log_levels = {
+      "Microsoft__Agents" = "Debug"
+    }
+  }
+
+  expect_failures = [var.log_levels]
+}
+
+run "log_levels_empty_by_default" {
+  command = plan
+
+  assert {
+    condition = length([
+      for name in output.function_app_app_setting_names : name
+      if startswith(name, "Logging__LogLevel__")
+    ]) == 0
+    error_message = "No Logging__LogLevel__ settings should be present when log_levels is omitted."
+  }
+}
+
+run "log_levels_render_to_dotnet_config_names" {
+  command = plan
+
+  variables {
+    log_levels = {
+      TeamsNotificationBot = "Debug"
+      "Microsoft.Agents"   = "Debug"
+    }
+  }
+
+  assert {
+    condition     = contains(output.function_app_app_setting_names, "Logging__LogLevel__TeamsNotificationBot")
+    error_message = "log_levels key should render to Logging__LogLevel__<category>."
+  }
+
+  assert {
+    condition     = contains(output.function_app_app_setting_names, "Logging__LogLevel__Microsoft.Agents")
+    error_message = "A dotted category should render verbatim, keeping the dot."
+  }
+}
+
+run "log_levels_appended_last_preserving_module_order" {
+  command = plan
+
+  variables {
+    # 'A...' sorts before every module-managed name — if the tail were merged or
+    # sorted with them rather than appended, this would surface it.
+    log_levels = {
+      Aaa = "Trace"
+      Zzz = "Error"
+    }
+  }
+
+  assert {
+    condition = slice(output.function_app_app_setting_names, 0, length(output.function_app_app_setting_names) - 2) == [
+      "AzureWebJobsStorage__credential",
+      "AzureWebJobsStorage__clientId",
+      "AzureWebJobsStorage__blobServiceUri",
+      "AzureWebJobsStorage__queueServiceUri",
+      "AzureWebJobsStorage__tableServiceUri",
+      "StorageAccountName",
+      "APPLICATIONINSIGHTS_CONNECTION_STRING",
+      "BotAppId",
+      "TenantId",
+      "ApiAppId",
+      "PoisonAlertAlias",
+    ]
+    error_message = "Module-managed app settings must keep their exact order when log_levels is set."
+  }
+
+  assert {
+    condition = slice(output.function_app_app_setting_names, length(output.function_app_app_setting_names) - 2, length(output.function_app_app_setting_names)) == [
+      "Logging__LogLevel__Aaa",
+      "Logging__LogLevel__Zzz",
+    ]
+    error_message = "log_levels must be appended last, in lexicographic key order, so plans stay stable."
+  }
+}
+
+run "log_levels_coexist_with_observability_disabled" {
+  command = plan
+
+  variables {
+    enable_observability = false
+    log_levels = {
+      TeamsNotificationBot = "Debug"
+    }
+  }
+
+  assert {
+    condition = slice(output.function_app_app_setting_names, length(output.function_app_app_setting_names) - 1, length(output.function_app_app_setting_names)) == [
+      "Logging__LogLevel__TeamsNotificationBot",
+    ]
+    error_message = "log_levels must still be appended last when the observability setting is absent."
+  }
+
+  assert {
+    condition     = !contains(output.function_app_app_setting_names, "APPLICATIONINSIGHTS_CONNECTION_STRING")
+    error_message = "APPLICATIONINSIGHTS_CONNECTION_STRING should be absent when observability is disabled."
+  }
+}

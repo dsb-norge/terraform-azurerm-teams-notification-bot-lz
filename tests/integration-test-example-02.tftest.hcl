@@ -92,4 +92,31 @@ run "apply" {
     condition     = length(output.easy_auth_excluded_paths) == 2
     error_message = "excludedPaths should be deduplicated to exactly [messaging endpoint, ingress path]."
   }
+
+  # The example sets log_levels. Asserting against the real apply proves ARM
+  # accepted the rendered names — including a dotted category, which becomes
+  # the setting name 'Logging__LogLevel__Microsoft.Agents' verbatim.
+  assert {
+    condition     = contains(output.function_app_app_setting_names, "Logging__LogLevel__TeamsNotificationBot")
+    error_message = "log_levels should be submitted to the deployed function app."
+  }
+
+  assert {
+    condition     = contains(output.function_app_app_setting_names, "Logging__LogLevel__Microsoft.Agents")
+    error_message = "A dotted log_levels category should reach Azure with the dot intact."
+  }
+
+  # Ordering contract: consumer log levels are the tail, so adding them never
+  # shifts a module-managed setting and never dirties an existing deployment's plan.
+  assert {
+    condition = slice(
+      output.function_app_app_setting_names,
+      length(output.function_app_app_setting_names) - 2,
+      length(output.function_app_app_setting_names)
+      ) == [
+      "Logging__LogLevel__Microsoft.Agents",
+      "Logging__LogLevel__TeamsNotificationBot",
+    ]
+    error_message = "log_levels must be appended last, in lexicographic key order."
+  }
 }

@@ -19,6 +19,11 @@ output "easy_auth_excluded_paths" {
   value       = module.teams_notification_bot.easy_auth_excluded_paths
 }
 
+output "function_app_app_setting_names" {
+  description = "Names of the app settings the module submits, in submission order."
+  value       = module.teams_notification_bot.function_app_app_setting_names
+}
+
 output "function_app_name" {
   description = "The name of the Function App."
   value       = module.teams_notification_bot.function_app_name
