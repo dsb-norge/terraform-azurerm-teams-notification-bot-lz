@@ -51,6 +51,14 @@ Confirmed empirically (April 2026): App Service `ipSecurityRestrictions` accepts
 - Integration tests use the **ss13-IKT-IAC-CICD** subscription. Set it before running: `az account set --subscription ss13-IKT-IAC-CICD`.
 - The `prevent_deletion_if_contains_resources = false` flag is set on test resource groups because Azure auto-creates a Smart Detection action group.
 - Test names prefixed `integration-test-example-*` match the CI workflow glob pattern.
+- **Idempotency**: `integration-test-example-01` ends with `second_apply` and
+  `plan_after_apply_converges`, which re-run the same module source (run blocks
+  sharing a module source share state, so these are genuine repeat operations).
+  Terraform has no empty-plan assertion — `plan`/`state` are reserved symbols and
+  hashicorp/terraform#34500 is still open — so they compare **remote-derived**
+  outputs across runs instead. A pending change makes those outputs unknown and
+  fails the assert with `Unknown condition value` rather than the block's own
+  `error_message`; that is still a real failure. See `docs/Development.md`.
 
 ## Query pack label limit
 
