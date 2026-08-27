@@ -25,7 +25,7 @@ run "rejects_missing_delegation" {
   command = plan
 
   variables {
-    name                = "itbad01"
+    name                = run.setup.name
     resource_group_name = run.setup.resource_group_name
     bot_app_id          = run.setup.bot_app_id
     api_app_id          = run.setup.api_app_id

@@ -15,6 +15,10 @@ run "setup" {
   module {
     source = "./tests/setup"
   }
+
+  variables {
+    name_prefix = "itbot02b"
+  }
 }
 
 # Create the UAMI in a separate resource group (simulating identity team)
@@ -26,7 +30,7 @@ run "setup_identity" {
   }
 
   variables {
-    name = "itbot02b"
+    name = run.setup.name
   }
 }
 
@@ -39,7 +43,7 @@ run "apply" {
   }
 
   variables {
-    name                 = "itbot02b"
+    name                 = run.setup.name
     bot_app_id           = run.setup.bot_app_id
     api_app_id           = run.setup.api_app_id
     api_app_object_id    = run.setup.api_app_object_id
@@ -49,13 +53,13 @@ run "apply" {
 
   # Core outputs
   assert {
-    condition     = output.function_app_name == "func-itbot02b"
-    error_message = "Function app name should be 'func-itbot02b'."
+    condition     = output.function_app_name == "func-${run.setup.name}"
+    error_message = "Function app name should be 'func-<name>'."
   }
 
   assert {
-    condition     = output.bot_service_name == "bot-itbot02b"
-    error_message = "Bot service name should be 'bot-itbot02b'."
+    condition     = output.bot_service_name == "bot-${run.setup.name}"
+    error_message = "Bot service name should be 'bot-<name>'."
   }
 
   # UAMI outputs should come from the pre-created identity

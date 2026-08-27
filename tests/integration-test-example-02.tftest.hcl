@@ -20,6 +20,10 @@ run "setup" {
   module {
     source = "./tests/setup"
   }
+
+  variables {
+    name_prefix = "itbot02"
+  }
 }
 
 # Apply example directory as a module
@@ -31,7 +35,7 @@ run "apply" {
   }
 
   variables {
-    name               = "itbot02"
+    name               = run.setup.name
     bot_app_id         = run.setup.bot_app_id
     api_app_id         = run.setup.api_app_id
     api_app_object_id  = run.setup.api_app_object_id
@@ -39,18 +43,18 @@ run "apply" {
   }
 
   assert {
-    condition     = startswith(output.resource_group_name, "rg-itbot02")
-    error_message = "Resource group name should start with 'rg-itbot02'."
+    condition     = startswith(output.resource_group_name, "rg-${run.setup.name}")
+    error_message = "Resource group name should start with 'rg-<name>'."
   }
 
   assert {
-    condition     = output.function_app_name == "func-itbot02"
-    error_message = "Function app name should be 'func-itbot02'."
+    condition     = output.function_app_name == "func-${run.setup.name}"
+    error_message = "Function app name should be 'func-<name>'."
   }
 
   assert {
-    condition     = output.bot_service_name == "bot-itbot02"
-    error_message = "Bot service name should be 'bot-itbot02'."
+    condition     = output.bot_service_name == "bot-${run.setup.name}"
+    error_message = "Bot service name should be 'bot-<name>'."
   }
 
   assert {
