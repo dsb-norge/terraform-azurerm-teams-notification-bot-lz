@@ -49,6 +49,48 @@ resource "azurerm_storage_container" "deployments" {
   storage_account_id    = azurerm_storage_account.bot.id
 }
 
+locals {
+  # App settings owned by the module. Hoisted out of the resource body so the
+  # ordering contract documented on appSettings below stays readable, and so the
+  # set of module-managed names is available as data rather than being buried in
+  # the resource.
+  module_app_settings = concat(
+    [
+      # Identity-based connection for AzureWebJobsStorage (queue/blob/table triggers and host storage).
+      # Uses explicit service URIs + __clientId per:
+      # https://learn.microsoft.com/azure/azure-functions/functions-reference#connecting-to-host-storage-with-an-identity
+      { name = "AzureWebJobsStorage__credential", value = "managedidentity" },
+      { name = "AzureWebJobsStorage__clientId", value = local.bot_uami_client_id },
+      { name = "AzureWebJobsStorage__blobServiceUri", value = azurerm_storage_account.bot.primary_blob_endpoint },
+      { name = "AzureWebJobsStorage__queueServiceUri", value = "https://${azurerm_storage_account.bot.name}.queue.core.windows.net" },
+      { name = "AzureWebJobsStorage__tableServiceUri", value = "https://${azurerm_storage_account.bot.name}.table.core.windows.net" },
+      { name = "StorageAccountName", value = azurerm_storage_account.bot.name },
+    ],
+    var.enable_observability ? [
+      { name = "APPLICATIONINSIGHTS_CONNECTION_STRING", value = azurerm_application_insights.bot[0].connection_string },
+    ] : [],
+    [
+      # M365 Agents SDK identity — env vars override zero-GUID placeholders in appsettings.json.
+      # Program.cs maps BotAppId/TenantId/AzureWebJobsStorage__clientId to nested SDK config paths.
+      # No client secret needed — UAMI authenticates as the bot app registration via federated trust.
+      { name = "BotAppId", value = var.bot_app_id },
+      { name = "TenantId", value = local.tenant_id },
+      { name = "ApiAppId", value = var.api_app_id },
+      { name = "PoisonAlertAlias", value = var.alert_target_alias },
+    ],
+  )
+
+  # Consumer-supplied log levels, rendered to the .NET configuration provider's
+  # environment-variable form. The Logging__LogLevel__ prefix namespaces these
+  # away from every module-managed name above, so no collision is possible and
+  # no guard against one is needed. Terraform iterates a map in lexicographic
+  # key order, so this tail is stable across plans.
+  log_level_app_settings = [
+    for category, level in var.log_levels :
+    { name = "Logging__LogLevel__${category}", value = level }
+  ]
+}
+
 # Using azapi_resource instead of azurerm_function_app_flex_consumption to avoid the provider
 # auto-injecting AzureWebJobsStorage and DEPLOYMENT_STORAGE_CONNECTION_STRING with empty AccountKey
 # on every apply. The empty AzureWebJobsStorage blocks the Flex Consumption scale controller from
@@ -110,32 +152,9 @@ resource "azapi_resource" "bot" {
         # is inserted between the storage settings and the M365 Agents SDK
         # identity block, gated on var.enable_observability; the AI resource
         # doesn't exist when observability is off and the SDK initializes in
-        # no-op mode without it.
-        appSettings = concat(
-          [
-            # Identity-based connection for AzureWebJobsStorage (queue/blob/table triggers and host storage).
-            # Uses explicit service URIs + __clientId per:
-            # https://learn.microsoft.com/azure/azure-functions/functions-reference#connecting-to-host-storage-with-an-identity
-            { name = "AzureWebJobsStorage__credential", value = "managedidentity" },
-            { name = "AzureWebJobsStorage__clientId", value = local.bot_uami_client_id },
-            { name = "AzureWebJobsStorage__blobServiceUri", value = azurerm_storage_account.bot.primary_blob_endpoint },
-            { name = "AzureWebJobsStorage__queueServiceUri", value = "https://${azurerm_storage_account.bot.name}.queue.core.windows.net" },
-            { name = "AzureWebJobsStorage__tableServiceUri", value = "https://${azurerm_storage_account.bot.name}.table.core.windows.net" },
-            { name = "StorageAccountName", value = azurerm_storage_account.bot.name },
-          ],
-          var.enable_observability ? [
-            { name = "APPLICATIONINSIGHTS_CONNECTION_STRING", value = azurerm_application_insights.bot[0].connection_string },
-          ] : [],
-          [
-            # M365 Agents SDK identity — env vars override zero-GUID placeholders in appsettings.json.
-            # Program.cs maps BotAppId/TenantId/AzureWebJobsStorage__clientId to nested SDK config paths.
-            # No client secret needed — UAMI authenticates as the bot app registration via federated trust.
-            { name = "BotAppId", value = var.bot_app_id },
-            { name = "TenantId", value = local.tenant_id },
-            { name = "ApiAppId", value = var.api_app_id },
-            { name = "PoisonAlertAlias", value = var.alert_target_alias },
-          ],
-        )
+        # no-op mode without it. Consumer log levels are appended last so adding
+        # them does not shift any existing entry.
+        appSettings = concat(local.module_app_settings, local.log_level_app_settings)
 
         # Priority layout for main app inbound rules:
         #   100-199: module-default allows (Bot Service, Teams channel, Action Group)

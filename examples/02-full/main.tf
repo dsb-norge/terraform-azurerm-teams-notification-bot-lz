@@ -123,6 +123,14 @@ module "teams_notification_bot" {
     }
   }
 
+  # Environment-specific logging verbosity. Applied as Logging__LogLevel__<category>
+  # app settings, overriding the defaults the app ships in its appsettings.json.
+  # Typically Debug on a dev instance only — not something every consumer wants.
+  log_levels = {
+    TeamsNotificationBot = "Debug"
+    "Microsoft.Agents"   = "Debug"
+  }
+
   tags = {
     "ApplicationName" = "Notifications"
     "owner"           = "platform-team"

@@ -25,6 +25,19 @@ output "easy_auth_excluded_paths" {
   value       = local.easy_auth_excluded_paths
 }
 
+output "function_app_app_setting_names" {
+  description = <<-DESCRIPTION
+    Names of the app settings the module submits to the Function App, in the
+    order they are submitted. Names only — values are omitted because they
+    include the Application Insights connection string.
+
+    Azure preserves the submitted order, so this output makes the ordering
+    contract observable: consumer-supplied `log_levels` always appear last,
+    after the module-managed settings.
+    DESCRIPTION
+  value       = [for setting in concat(local.module_app_settings, local.log_level_app_settings) : setting.name]
+}
+
 output "function_app_hostname" {
   description = "The default hostname of the Function App."
   value       = azapi_resource.bot.output.properties.defaultHostName

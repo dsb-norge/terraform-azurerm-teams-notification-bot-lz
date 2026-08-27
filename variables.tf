@@ -439,6 +439,64 @@ variable "log_analytics_workspace_id" {
   }
 }
 
+variable "log_levels" {
+  description = <<-DESCRIPTION
+    Per-category log level overrides for the function app, applied as
+    `Logging__LogLevel__<category>` app settings.
+
+    Environment-specific logging verbosity — typically `Debug` on a dev
+    instance — without requiring an application release. Values set here
+    override the defaults the app ships in its own `appsettings.json`.
+
+    Keys are .NET logger category prefixes; values must be valid
+    `Microsoft.Extensions.Logging.LogLevel` names. Keys containing a dot must
+    be quoted, as HCL only accepts bare identifiers as unquoted map keys.
+
+    Not a general app-settings passthrough and not a secrets mechanism: values
+    are stored in Terraform state and shown in plan output in clear text.
+
+    Example:
+
+    ```
+    log_levels = {
+      TeamsNotificationBot  = "Debug"
+      "Microsoft.Agents"    = "Debug"
+      Default               = "Information"
+    }
+    ```
+    DESCRIPTION
+  type        = map(string)
+  default     = {}
+  nullable    = false
+
+  validation {
+    condition = alltrue([
+      for level in values(var.log_levels) :
+      contains(["Trace", "Debug", "Information", "Warning", "Error", "Critical", "None"], level)
+    ])
+    error_message = "Each value in log_levels must be one of: Trace, Debug, Information, Warning, Error, Critical, None."
+  }
+
+  validation {
+    condition = alltrue([
+      for category in keys(var.log_levels) :
+      can(regex("^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$", category))
+    ])
+    error_message = "Each key in log_levels must be a .NET logger category — dot-separated identifiers, e.g. 'Microsoft.Agents'."
+  }
+
+  validation {
+    # '__' is the .NET configuration provider's nesting separator. A category
+    # containing it would render to a setting the runtime reads as a nested
+    # section rather than as that category — silently applying nothing. Single
+    # underscores are fine and stay legal.
+    condition = alltrue([
+      for category in keys(var.log_levels) : !strcontains(category, "__")
+    ])
+    error_message = "Keys in log_levels must not contain '__' — that is the .NET configuration nesting separator and would not resolve to the intended logger category."
+  }
+}
+
 variable "management_ip_rules" {
   description = <<-EOT
     CIDR ranges allowed inbound on the management/admin paths — operators and

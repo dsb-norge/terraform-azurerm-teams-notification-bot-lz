@@ -148,6 +148,14 @@ module "teams_notification_bot" {
     }
   }
 
+  # Environment-specific logging verbosity. Applied as Logging__LogLevel__<category>
+  # app settings, overriding the defaults the app ships in its appsettings.json.
+  # Typically Debug on a dev instance only — not something every consumer wants.
+  log_levels = {
+    TeamsNotificationBot = "Debug"
+    "Microsoft.Agents"   = "Debug"
+  }
+
   tags = {
     "ApplicationName" = "Notifications"
     "owner"           = "platform-team"
@@ -165,6 +173,7 @@ module "teams_notification_bot" {
 | <a name="output_bot_service_name"></a> [bot\_service\_name](#output\_bot\_service\_name) | The name of the Bot Service. |
 | <a name="output_deploy_uami_client_id"></a> [deploy\_uami\_client\_id](#output\_deploy\_uami\_client\_id) | The client ID of the deploy user-assigned managed identity. Null when deploy\_github\_actions\_from is empty. |
 | <a name="output_easy_auth_excluded_paths"></a> [easy\_auth\_excluded\_paths](#output\_easy\_auth\_excluded\_paths) | EasyAuth excludedPaths applied to the function app (messaging endpoint + app-declared anonymous paths). |
+| <a name="output_function_app_app_setting_names"></a> [function\_app\_app\_setting\_names](#output\_function\_app\_app\_setting\_names) | Names of the app settings the module submits, in submission order. |
 | <a name="output_function_app_name"></a> [function\_app\_name](#output\_function\_app\_name) | The name of the Function App. |
 | <a name="output_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#output\_log\_analytics\_workspace\_id) | The ID of the Log Analytics workspace. |
 | <a name="output_private_endpoint_ids"></a> [private\_endpoint\_ids](#output\_private\_endpoint\_ids) | Map of private endpoint resource IDs. |
