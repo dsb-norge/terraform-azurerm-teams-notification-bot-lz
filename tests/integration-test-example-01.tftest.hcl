@@ -15,6 +15,10 @@ run "setup" {
   module {
     source = "./tests/setup"
   }
+
+  variables {
+    name_prefix = "itbot01"
+  }
 }
 
 # Apply example directory as a module
@@ -26,30 +30,30 @@ run "apply" {
   }
 
   variables {
-    name              = "itbot01"
+    name              = run.setup.name
     bot_app_id        = run.setup.bot_app_id
     api_app_id        = run.setup.api_app_id
     api_app_object_id = run.setup.api_app_object_id
   }
 
   assert {
-    condition     = startswith(output.resource_group_name, "rg-itbot01")
-    error_message = "Resource group name should start with 'rg-itbot01'."
+    condition     = startswith(output.resource_group_name, "rg-${run.setup.name}")
+    error_message = "Resource group name should start with 'rg-<name>'."
   }
 
   assert {
-    condition     = output.function_app_name == "func-itbot01"
-    error_message = "Function app name should be 'func-itbot01'."
+    condition     = output.function_app_name == "func-${run.setup.name}"
+    error_message = "Function app name should be 'func-<name>'."
   }
 
   assert {
-    condition     = output.bot_service_name == "bot-itbot01"
-    error_message = "Bot service name should be 'bot-itbot01'."
+    condition     = output.bot_service_name == "bot-${run.setup.name}"
+    error_message = "Bot service name should be 'bot-<name>'."
   }
 
   assert {
-    condition     = output.storage_account_name == "stitbot01"
-    error_message = "Storage account name should be 'stitbot01'."
+    condition     = output.storage_account_name == "st${run.setup.name}"
+    error_message = "Storage account name should be 'st<name>'."
   }
 
   assert {
@@ -103,7 +107,7 @@ run "second_apply" {
   }
 
   variables {
-    name              = "itbot01"
+    name              = run.setup.name
     bot_app_id        = run.setup.bot_app_id
     api_app_id        = run.setup.api_app_id
     api_app_object_id = run.setup.api_app_object_id
@@ -149,7 +153,7 @@ run "plan_after_apply_converges" {
   }
 
   variables {
-    name              = "itbot01"
+    name              = run.setup.name
     bot_app_id        = run.setup.bot_app_id
     api_app_id        = run.setup.api_app_id
     api_app_object_id = run.setup.api_app_object_id

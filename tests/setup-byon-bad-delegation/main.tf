@@ -74,3 +74,14 @@ resource "time_sleep" "rbac_propagation" {
     azurerm_role_assignment.deployer_table,
   ]
 }
+
+# Random suffix for globally-scoped names. This setup module is used by a test
+# that does not also load ./tests/setup, so it generates its own. See the
+# comment on the equivalent resource in ./tests/setup for the rationale.
+resource "random_string" "suffix" {
+  length  = 6
+  lower   = true
+  upper   = false
+  numeric = true
+  special = false # storage account names allow only lowercase alphanumerics
+}

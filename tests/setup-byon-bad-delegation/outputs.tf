@@ -13,6 +13,11 @@ output "bot_app_id" {
   value       = random_uuid.bot_app_id.result
 }
 
+output "name" {
+  description = "Unique base name for this test run — var.name plus a random suffix. Pass this as the module's `name`."
+  value       = "${var.name}${random_string.suffix.result}"
+}
+
 output "resource_group_name" {
   description = "The name of the resource group."
   value       = azurerm_resource_group.this.name

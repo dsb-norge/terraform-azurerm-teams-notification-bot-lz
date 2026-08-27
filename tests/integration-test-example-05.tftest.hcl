@@ -16,6 +16,10 @@ run "setup" {
   module {
     source = "./tests/setup"
   }
+
+  variables {
+    name_prefix = "itbot05"
+  }
 }
 
 run "apply" {
@@ -26,7 +30,7 @@ run "apply" {
   }
 
   variables {
-    name              = "itbot05"
+    name              = run.setup.name
     bot_app_id        = run.setup.bot_app_id
     api_app_id        = run.setup.api_app_id
     api_app_object_id = run.setup.api_app_object_id
@@ -34,23 +38,23 @@ run "apply" {
 
   # Core resources still come up.
   assert {
-    condition     = startswith(output.resource_group_name, "rg-itbot05")
-    error_message = "Resource group name should start with 'rg-itbot05'."
+    condition     = startswith(output.resource_group_name, "rg-${run.setup.name}")
+    error_message = "Resource group name should start with 'rg-<name>'."
   }
 
   assert {
-    condition     = output.function_app_name == "func-itbot05"
-    error_message = "Function app name should be 'func-itbot05'."
+    condition     = output.function_app_name == "func-${run.setup.name}"
+    error_message = "Function app name should be 'func-<name>'."
   }
 
   assert {
-    condition     = output.bot_service_name == "bot-itbot05"
-    error_message = "Bot service name should be 'bot-itbot05'."
+    condition     = output.bot_service_name == "bot-${run.setup.name}"
+    error_message = "Bot service name should be 'bot-<name>'."
   }
 
   assert {
-    condition     = output.storage_account_name == "stitbot05"
-    error_message = "Storage account name should be 'stitbot05'."
+    condition     = output.storage_account_name == "st${run.setup.name}"
+    error_message = "Storage account name should be 'st<name>'."
   }
 
   assert {

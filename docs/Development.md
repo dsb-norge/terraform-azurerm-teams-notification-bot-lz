@@ -38,6 +38,79 @@ Below you can find basic guidelines and rules that must be followed during modul
 
 ```
 
+## Test isolation and parallel CI runs
+
+Integration tests must be safe to run concurrently. Two CI runs overlap more
+often than you would expect — merging to main opens a release PR whose CI races
+the next pull request's — and a collision shows up as a confusing failure in
+tests you did not touch:
+
+```
+Error: creating Storage Account ...: unexpected status 409 (409 Conflict) with error:
+StorageAccountAlreadyExists: The storage account named stitbot02b already exists
+under the subscription.
+```
+
+Most of what the module creates is scoped to a resource group, and resource
+groups are already unique because the examples name them with the naming
+module's `name_unique`. But three names derived from `var.name` live in
+**global** namespaces and will collide across concurrent runs:
+
+| Resource | Name | Scope |
+| -------- | ---- | ----- |
+| Storage account | `st<name>` | global |
+| Function app | `func-<name>` | global (owns an `azurewebsites.net` hostname) |
+| Bot service | `bot-<name>` | global |
+
+So the setup modules generate the name rather than the test hardcoding it.
+`tests/setup` takes a `name_prefix` identifying the test, appends a six
+character random suffix, and returns the result as `name`:
+
+```hcl
+run "setup" {
+  command = apply
+
+  module {
+    source = "./tests/setup"
+  }
+
+  variables {
+    name_prefix = "itbot01"
+  }
+}
+
+run "apply" {
+  command = apply
+
+  module {
+    source = "./examples/01-basic"
+  }
+
+  variables {
+    name = run.setup.name
+  }
+}
+```
+
+Assertions on derived names interpolate the same value —
+`output.function_app_name == "func-${run.setup.name}"` — so they keep their
+meaning without pinning a literal.
+
+Two things to keep in mind when adding a test:
+
+- **Keep the prefix short.** The module's `name` validation allows at most 22
+  characters once hyphens are stripped, and the suffix consumes six of them.
+- **The suffix is generated once per test file**, in the `setup` run, and is
+  stable for every later run block in that file. That is what lets the
+  idempotency runs below re-target the resources an earlier run created. A test
+  that generates a fresh name per run block would deploy a new environment each
+  time instead.
+
+`tests/setup-byon-bad-delegation` generates its own suffix because its test
+does not also load `tests/setup`. `tests/setup-byon-identity` does not — the
+test using it passes `run.setup.name` straight through, so the identity and the
+bot share one run's name.
+
 ## Idempotency testing
 
 `tests/integration-test-example-01.tftest.hcl` ends with two extra `run` blocks —
