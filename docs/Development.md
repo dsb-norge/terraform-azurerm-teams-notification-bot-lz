@@ -38,6 +38,85 @@ Below you can find basic guidelines and rules that must be followed during modul
 
 ```
 
+## Idempotency testing
+
+`tests/integration-test-example-01.tftest.hcl` ends with two extra `run` blocks —
+`second_apply` and `plan_after_apply_converges` — that check the module
+converges: applying it twice in a row must not rebuild anything, and a plan
+taken afterwards must not still want to change things.
+
+This matters because the function app is an `azapi_resource` submitting a large
+ARM body. If Azure normalises or rejects any part of what we send, every
+consumer sees a permanent diff and every apply rewrites the site — including
+its `appSettings`. That failure mode is invisible to unit tests, which never
+talk to Azure.
+
+### How the repeat operation works
+
+Run blocks that share a `module` source share one state file. Terraform's
+documentation puts it this way: *"An alternate module state file is shared by
+all `run` blocks that execute the given module."* So a later run block naming
+the same source operates on the resources an earlier one created — it is a
+genuine second apply, not a fresh deployment. No `import` block or state
+juggling is needed. (If you ever need to override that pairing, the `state_key`
+attribute on a run block controls it explicitly.)
+
+### Why the assertions look indirect — the workaround
+
+**Terraform cannot assert that a plan is empty.** There is no `expect_no_changes`
+and no way to inspect the diff from a test. The `plan` and `state` symbols were
+reserved for exactly this when the test framework launched, but the feature has
+never been implemented — the tracking issue,
+[hashicorp/terraform#34500](https://github.com/hashicorp/terraform/issues/34500),
+has been open since January 2024. Writing the syntax people suggest online fails:
+
+```
+Error: Reserved symbol name
+  The symbol name "plan" is reserved for use in a future Terraform version.
+```
+
+So these tests use the workaround a Terraform maintainer recommends on that
+issue: **compare outputs across run blocks**. A later run can reference an
+earlier one's outputs as `run.<name>.<output>`, and the comparison does double
+duty:
+
+- After `command = apply`, an inequality means the resource was actually
+  rebuilt between applies.
+- After `command = plan`, the check is sharper than it looks. If the plan
+  intends to change a resource, the outputs it feeds become *unknown*, and
+  Terraform fails the assertion with `Unknown condition value` rather than the
+  block's own `error_message`. A failure that names a missing value rather than
+  quoting our message is still a real failure — read it as "this resource is
+  not converging".
+
+Only **remote-derived** outputs are compared (`function_app_hostname`,
+`vnet_id`, `log_analytics_workspace_id`, `private_endpoint_ids`). Outputs
+computed from input variables — names, and anything derived from `var.*` — are
+identical on a re-apply by construction and would prove nothing.
+
+### What this does and does not catch
+
+Catches: a resource that is rebuilt on the second apply; a resource that creates
+successfully but fails on the update path; a property Azure returns differently
+from what we submitted, for any attribute feeding one of the compared outputs.
+
+Does not catch: an in-place update to an attribute that feeds none of the
+compared outputs. Widening coverage means comparing more remote-derived
+outputs, not a different technique.
+
+Note also that an *empty* plan would be the wrong bar for this module even if
+Terraform could assert one. `azapi_resource_action.register_microsoft_app`
+deliberately re-runs on every apply (see the comment in `main.compute.tf`), so
+convergence here means "nothing is rebuilt or rewritten", not "the plan is
+byte-empty".
+
+One further caveat specific to app settings: ARM's `GET` on
+`Microsoft.Web/sites` returns `siteConfig.appSettings` as `null` — the values
+are only retrievable via `POST .../config/appsettings/list`. The provider
+therefore has no read path for app settings and cannot detect drift in them at
+all, so these tests cannot observe app-setting convergence. They cover the rest
+of the site body.
+
 ## Release and versioning
 
 This module uses [semantic versioning](https://semver.org).
