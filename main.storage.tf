@@ -21,7 +21,7 @@ resource "azurerm_storage_account" "bot" {
   allow_nested_items_to_be_public = false
   default_to_oauth_authentication = true
   local_user_enabled              = false
-  public_network_access_enabled   = true
+  public_network_access_enabled   = var.storage_public_network_access_enabled
   shared_access_key_enabled       = false
   tags                            = local.common_tags
 }
@@ -35,8 +35,11 @@ resource "azurerm_storage_queue" "app" {
 
 
 # Network rules: Deny by default. The function app accesses storage through
-# private endpoints via VNet integration. Management IPs are allowed for
-# terraform operations.
+# private endpoints via VNet integration, so it never needs the public endpoint.
+# Management IPs are allowed on the public endpoint for operators (portal data
+# browsing, debugging); with var.storage_public_network_access_enabled = false
+# there is no public endpoint and the IP rules are dropped. default_action stays
+# Deny either way — Defender reports on it even when public access is disabled.
 #
 # Two variants gated on var.data_scanner_private_link_access:
 #   true  → declares the Microsoft Defender for Storage data scanner endpoint
@@ -52,7 +55,7 @@ resource "azurerm_storage_account_network_rules" "bot" {
   default_action     = "Deny"
   storage_account_id = azurerm_storage_account.bot.id
   bypass             = ["AzureServices"]
-  ip_rules           = local.allowed_management_ips
+  ip_rules           = local.storage_ip_rules
 
   private_link_access {
     endpoint_resource_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.Security/datascanners/storageDataScanner"
@@ -66,5 +69,5 @@ resource "azurerm_storage_account_network_rules" "bot_no_data_scanner" {
   default_action     = "Deny"
   storage_account_id = azurerm_storage_account.bot.id
   bypass             = ["AzureServices"]
-  ip_rules           = local.allowed_management_ips
+  ip_rules           = local.storage_ip_rules
 }
