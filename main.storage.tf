@@ -9,11 +9,21 @@ resource "azurerm_storage_account" "bot" {
   location                 = var.location
   # Storage accounts require all-lowercase alphanumeric names; the naming module
   # does not strip hyphens from within suffix elements, so we construct manually.
-  name                          = "st${replace(var.name, "-", "")}"
-  resource_group_name           = var.resource_group_name
-  public_network_access_enabled = true
-  shared_access_key_enabled     = false
-  tags                          = local.common_tags
+  name                = "st${replace(var.name, "-", "")}"
+  resource_group_name = var.resource_group_name
+  # Entra ID is the only authorization path: the function app and deploy
+  # tooling authenticate with managed identities, so account keys, anonymous
+  # reads and SFTP local users are all disabled. default_to_oauth_authentication
+  # makes the portal use Entra ID too, instead of silently falling back to keys.
+  # allow_nested_items_to_be_public is what Defender for Cloud's "Storage account
+  # public access should be disallowed" checks — anonymous blob access, NOT
+  # network access (that is public_network_access_enabled + the network rules).
+  allow_nested_items_to_be_public = false
+  default_to_oauth_authentication = true
+  local_user_enabled              = false
+  public_network_access_enabled   = true
+  shared_access_key_enabled       = false
+  tags                            = local.common_tags
 }
 
 resource "azurerm_storage_queue" "app" {
