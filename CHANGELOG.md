@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.3.0...v1.4.0) (2026-09-23)
+
+
+### Features
+
+* **storage:** add opt-in to disable storage public network access ([ce47cf6](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/commit/ce47cf632b462cc92d2fe1dad7997c4ce3dac10e))
+* **storage:** restrict storage account to Entra ID authorization ([a7b292d](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/commit/a7b292dd4eaeac96286af153bb98112c78ae3cb8))
+
 ## [1.3.0](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.2.0...v1.3.0) (2026-08-27)
 
 
