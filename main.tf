@@ -27,6 +27,10 @@ locals {
   # Derived: storage ip_rules require single IPs without /32 suffix
   allowed_management_ips = [for rule in var.management_ip_rules : trimsuffix(rule.cidr, "/32")]
 
+  # IP rules only take effect on the public endpoint. With public network access
+  # disabled Azure keeps but ignores them, so drop them to keep state honest.
+  storage_ip_rules = var.storage_public_network_access_enabled ? local.allowed_management_ips : []
+
   common_tags = merge(
     {
       "Environment" = var.name

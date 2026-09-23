@@ -113,6 +113,11 @@ module "teams_notification_bot" {
     },
   ]
 
+  # Storage reachable only through its private endpoints. The function app is
+  # unaffected (it already uses the PEs); management_ip_rules then apply only
+  # to the function app and SCM, not to storage.
+  storage_public_network_access_enabled = false
+
   # Allowed callers to /api/v1/* — systems that push messages to Teams.
   # Mix of service tag and CIDR rules to exercise both code paths.
   #

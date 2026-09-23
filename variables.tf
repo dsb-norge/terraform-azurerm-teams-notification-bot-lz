@@ -504,8 +504,11 @@ variable "management_ip_rules" {
       - the function app's public endpoint (manual /api/* smoke-testing)
       - the SCM/Kudu endpoint (deployments via `func azure functionapp publish`,
         live log streaming, portal debugging)
-      - the storage account network rules (terraform apply uploading
-        deployment packages)
+      - the storage account network rules (operator access to blobs, queues
+        and tables from outside the VNet). Not applied when
+        storage_public_network_access_enabled = false. Terraform itself does
+        not need this: the integration tests apply from runners that are not
+        on the list.
 
     This is NOT for application callers pushing messages to the API — use
     allowed_caller_rules for that. Typical use: operator VPN CIDRs and the
@@ -634,6 +637,27 @@ variable "network_config" {
     )
     error_message = "subnet_private_endpoints_prefix must be at least /28."
   }
+}
+
+variable "storage_public_network_access_enabled" {
+  description = <<-DESCRIPTION
+    Whether the storage account's public endpoint is enabled.
+
+    Default true: the public endpoint exists but its firewall denies everything
+    except management_ip_rules, trusted Azure services and (when
+    data_scanner_private_link_access = true) the Defender for Storage scanner.
+
+    Set false to make the account reachable only through its private endpoints.
+    The function app is unaffected — it already reaches storage through the
+    private endpoints over VNet integration. What changes:
+      - management_ip_rules no longer apply to storage, so operators outside the
+        VNet lose portal/CLI access to blobs, queues and tables.
+      - the trusted-services exception and the Defender scanner rule stay in
+        effect (Azure keeps exceptions when public access is disabled).
+    DESCRIPTION
+  type        = bool
+  default     = true
+  nullable    = false
 }
 
 variable "tags" {

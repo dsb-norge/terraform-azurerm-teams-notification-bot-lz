@@ -778,6 +778,79 @@ run "storage_account_allows_entra_id_auth_only" {
   }
 }
 
+run "storage_public_network_access_enabled_by_default" {
+  command = plan
+
+  variables {
+    management_ip_rules = [
+      { name = "operator", description = "Operator VPN", cidr = "203.0.113.10/32" },
+    ]
+  }
+
+  assert {
+    condition     = azurerm_storage_account.bot.public_network_access_enabled == true
+    error_message = "Storage public network access should be enabled by default."
+  }
+
+  assert {
+    condition     = azurerm_storage_account_network_rules.bot[0].default_action == "Deny"
+    error_message = "Storage firewall should deny by default."
+  }
+
+  assert {
+    condition     = tolist(azurerm_storage_account_network_rules.bot[0].ip_rules) == tolist(["203.0.113.10"])
+    error_message = "Storage IP rules should carry management_ip_rules (with /32 stripped) when public access is enabled."
+  }
+}
+
+run "storage_public_network_access_disabled" {
+  command = plan
+
+  variables {
+    storage_public_network_access_enabled = false
+    management_ip_rules = [
+      { name = "operator", description = "Operator VPN", cidr = "203.0.113.10/32" },
+    ]
+  }
+
+  assert {
+    condition     = azurerm_storage_account.bot.public_network_access_enabled == false
+    error_message = "Storage public network access should be disabled when storage_public_network_access_enabled = false."
+  }
+
+  assert {
+    condition     = azurerm_storage_account_network_rules.bot[0].default_action == "Deny"
+    error_message = "Storage firewall should still deny by default — Defender reports on default_action even when public access is disabled."
+  }
+
+  assert {
+    condition     = length(azurerm_storage_account_network_rules.bot[0].ip_rules) == 0
+    error_message = "Storage IP rules should be empty when public access is disabled — they would have no effect."
+  }
+
+  assert {
+    condition     = length(azapi_resource.bot.body.properties.siteConfig.scmIpSecurityRestrictions) == 1
+    error_message = "management_ip_rules should still apply to SCM when only storage public access is disabled."
+  }
+}
+
+run "storage_public_network_access_disabled_without_data_scanner" {
+  command = plan
+
+  variables {
+    storage_public_network_access_enabled = false
+    data_scanner_private_link_access      = false
+    management_ip_rules = [
+      { name = "operator", description = "Operator VPN", cidr = "203.0.113.10/32" },
+    ]
+  }
+
+  assert {
+    condition     = length(azurerm_storage_account_network_rules.bot_no_data_scanner[0].ip_rules) == 0
+    error_message = "Storage IP rules should be empty when public access is disabled, in the no-data-scanner variant too."
+  }
+}
+
 # --- Additional validation tests (positive) ---
 
 run "name_accepts_valid_lowercase" {
