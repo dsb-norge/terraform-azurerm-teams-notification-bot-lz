@@ -46,7 +46,7 @@ Confirmed empirically (April 2026): App Service `ipSecurityRestrictions` accepts
 
 ## Testing
 
-- **Unit tests** (`tests/unit-tests.tftest.hcl`): 91 tests using `mock_provider`. Cover variable validation, conditional resources, BYON network, BYON identity, naming, outputs, GitHub OIDC FICs (classic + immutable subject formats).
+- **Unit tests** (`tests/unit-tests.tftest.hcl`): 103 tests using `mock_provider`. Cover variable validation, conditional resources, BYON network, BYON identity, naming, outputs, GitHub OIDC FICs (classic + immutable subject formats), storage account hardening.
 - **Integration tests** (`tests/integration-test-*.tftest.hcl`): Run against real Azure. Each uses `tests/setup/` for random UUIDs and may use additional setup helpers (e.g. `tests/setup-byon-identity/` for BYON identity scenarios).
 - Integration tests must be safe to run concurrently — two CI runs overlap
   routinely, since merging to main opens a release PR whose CI races the next
@@ -67,6 +67,10 @@ Confirmed empirically (April 2026): App Service `ipSecurityRestrictions` accepts
   outputs across runs instead. A pending change makes those outputs unknown and
   fails the assert with `Unknown condition value` rather than the block's own
   `error_message`; that is still a real failure. See `docs/Development.md`.
+
+## Storage account: "public access" means two different things
+
+Defender for Cloud's "Storage account public access should be disallowed" is about **anonymous blob access** (`allow_nested_items_to_be_public`), not network exposure. Network exposure is `public_network_access_enabled` plus the network rules, controlled by `storage_public_network_access_enabled`. The function app never uses the public endpoint — it reaches storage through the private endpoints — and Terraform doesn't need it either: the integration tests apply from GitHub-hosted runners with no storage IP rules, and the azurerm provider tolerates the blocked data-plane reads. That holds with public access disabled too: `02-full` creates, reads and destroys a private-only account from those runners without `features { storage { data_plane_available = false } }`. `management_ip_rules` on storage exists for operator access only.
 
 ## Query pack label limit
 
