@@ -10,7 +10,7 @@ This module deploys the following resources into an existing resource group:
 |-----------|----------|---------|
 | **Compute** | Function App (Flex Consumption, FC1) | Hosts the bot's .NET 10 isolated worker |
 | **Bot Service** | Azure Bot Service (F0, SingleTenant) | Routes Teams channel traffic to the Function App |
-| **Storage** | Storage Account (LRS, no shared keys) | Queue triggers, table state, deployment packages |
+| **Storage** | Storage Account (LRS, Entra ID auth only — no shared keys, anonymous access or local users) | Queue triggers, table state, deployment packages |
 | **Networking** | VNet + 2 subnets | VNet integration for Function App, private endpoints |
 | **Private Endpoints** | 3 PEs (blob, queue, table) | Private connectivity to storage |
 | **Identity** | User-Assigned Managed Identity | Passwordless access to storage and bot auth |

@@ -752,6 +752,32 @@ run "default_location_is_norwayeast" {
   }
 }
 
+# --- Storage account hardening ---
+
+run "storage_account_allows_entra_id_auth_only" {
+  command = plan
+
+  assert {
+    condition     = azurerm_storage_account.bot.allow_nested_items_to_be_public == false
+    error_message = "Anonymous blob/container access must be disallowed (Defender: 'Storage account public access should be disallowed')."
+  }
+
+  assert {
+    condition     = azurerm_storage_account.bot.shared_access_key_enabled == false
+    error_message = "Shared key access must be disabled — all storage access uses managed identities."
+  }
+
+  assert {
+    condition     = azurerm_storage_account.bot.default_to_oauth_authentication == true
+    error_message = "The portal should default to Entra ID authorization for storage data."
+  }
+
+  assert {
+    condition     = azurerm_storage_account.bot.local_user_enabled == false
+    error_message = "SFTP local users must be disabled."
+  }
+}
+
 # --- Additional validation tests (positive) ---
 
 run "name_accepts_valid_lowercase" {
