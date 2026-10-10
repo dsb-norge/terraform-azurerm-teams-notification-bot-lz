@@ -36,16 +36,16 @@ provider "azurerm" {
 
 data "azurerm_client_config" "current" {}
 
-module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.4.3"
-
-  suffix = [var.name]
+# random part of the names, so that runs do not collide
+resource "random_string" "suffix" {
+  length  = 4
+  special = false
+  upper   = false
 }
 
 resource "azurerm_resource_group" "this" {
   location = "norwayeast"
-  name     = module.naming.resource_group.name_unique
+  name     = "rg-${var.name}-${random_string.suffix.result}"
   tags     = {}
 }
 
@@ -54,14 +54,14 @@ resource "azurerm_resource_group" "this" {
 resource "azurerm_virtual_network" "vended" {
   address_space       = ["10.100.0.0/16"]
   location            = azurerm_resource_group.this.location
-  name                = "${module.naming.virtual_network.name}-vended"
+  name                = "vnet-${var.name}-vended"
   resource_group_name = azurerm_resource_group.this.name
   tags                = {}
 }
 
 resource "azurerm_subnet" "func" {
   address_prefixes     = ["10.100.0.0/24"]
-  name                 = "${module.naming.subnet.name}-func"
+  name                 = "snet-${var.name}-func"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.vended.name
 
@@ -79,7 +79,7 @@ resource "azurerm_subnet" "func" {
 
 resource "azurerm_subnet" "pe" {
   address_prefixes     = ["10.100.1.0/24"]
-  name                 = "${module.naming.subnet.name}-pe"
+  name                 = "snet-${var.name}-pe"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.vended.name
 

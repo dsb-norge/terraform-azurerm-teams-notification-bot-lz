@@ -14,16 +14,16 @@ provider "azurerm" {
 
 data "azurerm_client_config" "current" {}
 
-module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.4.3"
-
-  suffix = [var.name]
+# random part of the names, so that runs do not collide
+resource "random_string" "suffix" {
+  length  = 4
+  special = false
+  upper   = false
 }
 
 resource "azurerm_resource_group" "this" {
   location = "norwayeast"
-  name     = module.naming.resource_group.name_unique
+  name     = "rg-${var.name}-${random_string.suffix.result}"
   tags     = {}
 }
 
