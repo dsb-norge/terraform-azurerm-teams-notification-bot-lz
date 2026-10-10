@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.4.0...v1.4.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* write the version constraints as ranges over one major ([801c2b9](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/commit/801c2b91502bc17359949a6a24259faf50b3451f))
+
 ## [1.4.0](https://github.com/dsb-norge/terraform-azurerm-teams-notification-bot-lz/compare/v1.3.0...v1.4.0) (2026-09-23)
 
 
