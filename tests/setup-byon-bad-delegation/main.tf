@@ -6,23 +6,16 @@ resource "random_uuid" "bot_app_id" {}
 resource "random_uuid" "api_app_id" {}
 resource "random_uuid" "api_app_object_id" {}
 
-module "naming" {
-  source  = "Azure/naming/azurerm"
-  version = "0.4.3"
-
-  suffix = [var.name]
-}
-
 resource "azurerm_resource_group" "this" {
   location = "norwayeast"
-  name     = module.naming.resource_group.name_unique
+  name     = "rg-${var.name}-${random_string.suffix.result}"
   tags     = {}
 }
 
 resource "azurerm_virtual_network" "vended" {
   address_space       = ["10.100.0.0/16"]
   location            = azurerm_resource_group.this.location
-  name                = "${module.naming.virtual_network.name}-vended"
+  name                = "vnet-${var.name}-vended"
   resource_group_name = azurerm_resource_group.this.name
   tags                = {}
 }
@@ -30,14 +23,14 @@ resource "azurerm_virtual_network" "vended" {
 # Function app subnet WITHOUT delegation — this is the deliberate misconfiguration.
 resource "azurerm_subnet" "func_no_delegation" {
   address_prefixes     = ["10.100.0.0/24"]
-  name                 = "${module.naming.subnet.name}-func-bad"
+  name                 = "snet-${var.name}-func-bad"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.vended.name
 }
 
 resource "azurerm_subnet" "pe" {
   address_prefixes     = ["10.100.1.0/24"]
-  name                 = "${module.naming.subnet.name}-pe"
+  name                 = "snet-${var.name}-pe"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.vended.name
 
